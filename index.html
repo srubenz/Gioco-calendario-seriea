@@ -205,7 +205,7 @@
             <div id="cloud-status-badge">
               <span style="background: var(--tv-green); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">🟢 CLOUD ONLINE</span>
             </div>
-            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 22:06</span>
+            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 22:19</span>
           </div>
         </div>
 
@@ -399,18 +399,22 @@
         </div>
       </section>
 
-      <!-- SCHEDA 3: CLASSIFICA REALE (SOLA LETTURA) -->
+      <!-- SCHEDA 3: CLASSIFICA REALE (SOLA LETTURA RIGIDA - FONTE LEGASERIEA.IT) -->
       <section id="actual-view" class="view-section" style="display: none;">
-        <div class="controls-bar">
-          <div class="rules-hint">
-            <span>⚽ CLASSIFICA UFFICIALE SERIE A 2026-2027 (SOLA LETTURA)</span>
+        <div class="controls-bar" style="border-color: var(--tv-cyan);">
+          <div class="rules-hint" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <span>⚽ CLASSIFICA UFFICIALE SERIE A 2026-2027 (SOLA LETTURA 🔒)</span>
+            <a href="https://www.legaseriea.it/serie-a/classifica" target="_blank" rel="noopener" style="background: var(--tv-blue); color: var(--tv-yellow); padding: 0.2rem 0.6rem; font-weight: 700; text-decoration: none; border-radius: 4px; font-size: 0.95rem; border: 1px solid var(--tv-yellow);">
+              🌐 FONTE UFFICIALE: LEGASERIEA.IT ↗
+            </a>
           </div>
           <div class="btn-group">
             <button class="btn btn-accent" onclick="switchTab('results-view');">VAI AI RISULTATI LEGA</button>
           </div>
         </div>
 
-        <div id="actual-list" class="standings-container">
+        <!-- LISTA CLASSIFICA REALE CON BLOCCO TOTALE EVENTI TOUCH / DRAG -->
+        <div id="actual-list" class="standings-container" style="pointer-events: none !important; user-select: none !important; touch-action: none !important;">
           <!-- Generato dinamicamente in app.js (Pure Read-Only) -->
         </div>
       </section>

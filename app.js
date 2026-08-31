@@ -1490,12 +1490,19 @@ function renderPredictList() {
 function renderActualList() {
   if (!actualContainer) return;
   actualContainer.innerHTML = '';
+  actualContainer.style.pointerEvents = 'none';
+  actualContainer.style.userSelect = 'none';
+  actualContainer.style.touchAction = 'none';
 
   actualStandings.forEach((team, index) => {
     const rank = index + 1;
     const card = document.createElement('div');
     card.className = 'team-card';
     card.style.cursor = 'default';
+    card.style.pointerEvents = 'none';
+    card.style.touchAction = 'none';
+    card.style.userSelect = 'none';
+    card.setAttribute('draggable', 'false');
     card.setAttribute('data-zone', getZoneType(rank));
 
     const fallbackSrc = createFallbackBadge(team);
@@ -1507,8 +1514,8 @@ function renderActualList() {
         <span class="team-name" style="font-size: 1.1rem;">${team.name.toUpperCase()}</span>
         <span class="team-zone-label">${getZoneLabel(rank)}</span>
       </div>
-      <div style="font-size: 0.9rem; color: var(--tv-yellow); font-weight: 700; text-align: right; padding-right: 0.5rem;">
-        CLASSIFICA UFFICIALE
+      <div style="font-size: 0.85rem; color: var(--tv-yellow); font-weight: 700; text-align: right; padding-right: 0.5rem; display: flex; align-items: center; gap: 0.3rem;">
+        🔒 FONTE: LEGASERIEA.IT
       </div>
     `;
 
