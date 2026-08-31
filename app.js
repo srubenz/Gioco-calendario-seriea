@@ -16,7 +16,7 @@ const SERIE_A_TEAMS = [
   { id: 'cagliari', name: 'Cagliari', fullName: 'Cagliari Calcio', short: 'CAG', primaryColor: '#800000', secondaryColor: '#000080', logo: 'https://crests.football-data.org/104.png' },
   { id: 'udinese', name: 'Udinese', fullName: 'Udinese Calcio', short: 'UDI', primaryColor: '#000000', secondaryColor: '#ffffff', logo: 'https://crests.football-data.org/115.png' },
   { id: 'lecce', name: 'Lecce', fullName: 'US Lecce', short: 'LEC', primaryColor: '#ffe600', secondaryColor: '#d00000', logo: 'https://crests.football-data.org/5890.png' },
-  { id: 'sassuolo', name: 'Sassuolo', fullName: 'US Sassuolo Calcio', short: 'SAS', primaryColor: '#008000', secondaryColor: '#000000', logo: 'https://crests.football-data.org/488.png' },
+  { id: 'sassuolo', name: 'Sassuolo', fullName: 'US Sassuolo Calcio', short: 'SAS', primaryColor: '#008000', secondaryColor: '#000000', logo: 'https://upload.wikimedia.org/wikipedia/it/a/a4/Ussassuolostemma.svg' },
   { id: 'venezia', name: 'Venezia', fullName: 'Venezia FC', short: 'VEN', primaryColor: '#ff6600', secondaryColor: '#006633', logo: 'https://crests.football-data.org/454.png' },
   { id: 'frosinone', name: 'Frosinone', fullName: 'Frosinone Calcio', short: 'FRO', primaryColor: '#ffcc00', secondaryColor: '#003399', logo: 'https://crests.football-data.org/470.png' },
   { id: 'monza', name: 'Monza', fullName: 'AC Monza', short: 'MON', primaryColor: '#d00000', secondaryColor: '#ffffff', logo: 'https://crests.football-data.org/5911.png' }
@@ -178,6 +178,33 @@ function startTvClock() {
   setInterval(updateClock, 1000);
 }
 
+// CONTROLLO AUTORIZZAZIONE VISIBILITA' LEGA PER UTENTE
+function isUserParticipantInLeague(league, user = currentForumUser) {
+  if (!league) return false;
+  if (isDevMasterMode) return true;
+
+  if (user && league.admin && league.admin.email) {
+    if (league.admin.email.toLowerCase() === user.email.toLowerCase()) {
+      return true;
+    }
+  }
+
+  if (Array.isArray(league.participants)) {
+    return league.participants.some(p => {
+      if (user && p.email && p.email.toLowerCase() === user.email.toLowerCase()) return true;
+      if (user && p.name && p.name.toUpperCase() === user.name.toUpperCase()) return true;
+      return false;
+    });
+  }
+
+  return false;
+}
+
+function getUserAuthorizedLeagues() {
+  if (isDevMasterMode) return leagues;
+  return leagues.filter(l => isUserParticipantInLeague(l));
+}
+
 async function fetchGlobalCloudLeagues() {
   try {
     const res = await fetch(CLOUD_SYNC_ENDPOINT + MASTER_REGISTRY_BIN_ID);
@@ -256,9 +283,7 @@ async function selectPublicCloudLeague() {
   }
 
   if (targetLeague) {
-    activeLeagueId = targetLeague.id;
-    saveMultiLeagues();
-    showToast(`SELEZIONATA LEGA "${targetLeague.name}"! INSERISCI I TUOI DATI PER ACCEDERE.`);
+    showToast(`SELEZIONATA LEGA "${targetLeague.name}"! INSERISCI I TUOI DATI E LA PASSWORD PER ENTRARE.`);
     document.getElementById('join-player-name').focus();
   } else {
     showToast(`CODICE LEGA ${selectedCode} IMPOSTATO! INSERISCI I TUOI DATI.`);
@@ -351,7 +376,6 @@ function updateUserSessionBadge() {
   }
 }
 
-// ACCESS CREDIENTIALS SEGRETE SVILUPPATORE (ADMIN / brando)
 function checkDevMasterAuth(userStr, passStr) {
   const u = userStr.trim().toUpperCase();
   const p = passStr.trim();
@@ -388,24 +412,14 @@ function loginDirectFromStart(event) {
   currentForumUser = user;
   saveForumUsers();
 
-  const curLeague = getActiveLeague();
-  if (curLeague) {
-    const existingP = curLeague.participants.find(p => p.name.toUpperCase() === user.name.toUpperCase());
+  const authorizedLeagues = getUserAuthorizedLeagues();
+  if (authorizedLeagues.length > 0) {
+    activeLeagueId = authorizedLeagues[0].id;
+    const curLeague = getActiveLeague();
+    const existingP = curLeague.participants.find(p => (p.email && p.email.toLowerCase() === user.email.toLowerCase()) || p.name.toUpperCase() === user.name.toUpperCase());
     if (existingP) {
       curLeague.activeParticipantId = existingP.id;
-    } else {
-      const newPlayerId = 'p_' + Date.now();
-      curLeague.participants.push({
-        id: newPlayerId,
-        name: user.name,
-        prediction: SERIE_A_TEAMS.map(t => t.id),
-        isLocked: false,
-        score: 0,
-        stats: { exact: 0, close: 0, wrong: 0, scudettoBonus: 0, relegationBonus: 0 }
-      });
-      curLeague.activeParticipantId = newPlayerId;
     }
-    saveMultiLeagues();
   }
 
   showAppScreen();
@@ -493,7 +507,8 @@ function deleteLeagueById(leagueId) {
     globalCloudRegistry = globalCloudRegistry.filter(r => r.id !== leagueId);
     syncGlobalCloudRegistry();
     if (activeLeagueId === leagueId) {
-      activeLeagueId = leagues.length > 0 ? leagues[0].id : null;
+      const authorized = getUserAuthorizedLeagues();
+      activeLeagueId = authorized.length > 0 ? authorized[0].id : null;
     }
     saveMultiLeagues();
     renderDevMasterData();
@@ -534,11 +549,10 @@ function deleteCurrentLeague() {
     leagues = leagues.filter(l => l.id !== curLeague.id);
     globalCloudRegistry = globalCloudRegistry.filter(r => r.id !== curLeague.id);
     syncGlobalCloudRegistry();
-    if (leagues.length > 0) {
-      activeLeagueId = leagues[0].id;
-    } else {
-      activeLeagueId = null;
-    }
+    
+    const authorized = getUserAuthorizedLeagues();
+    activeLeagueId = authorized.length > 0 ? authorized[0].id : null;
+    
     saveMultiLeagues();
     renderPublicCloudLeaguesDropdown();
     if (activeLeagueId) {
@@ -546,7 +560,7 @@ function deleteCurrentLeague() {
       showToast('LEGA ELIMINATA.');
     } else {
       showStartScreen();
-      showToast('TUTTE LE LEGHE SONO STATE ELIMINATE.');
+      showToast('NON SEI ISCRITTO AD ALCUNA LEGA ATTIVA.');
     }
   }
 }
@@ -689,7 +703,10 @@ function initMultiLeagueData() {
 
   activeLeagueId = localStorage.getItem('seriea_2026_active_league_id');
   if (!activeLeagueId || !leagues.find(l => l.id === activeLeagueId)) {
-    if (leagues.length > 0) {
+    const authorized = getUserAuthorizedLeagues();
+    if (authorized.length > 0) {
+      activeLeagueId = authorized[0].id;
+    } else if (leagues.length > 0) {
       activeLeagueId = leagues[0].id;
     }
   }
@@ -870,7 +887,8 @@ function checkUrlInvite() {
     }
   }
 
-  if (leagues.length > 0 && activeLeagueId) {
+  const authorized = getUserAuthorizedLeagues();
+  if (authorized.length > 0 && activeLeagueId) {
     showAppScreen();
   } else {
     showStartScreen();
@@ -898,7 +916,15 @@ function showAppScreen() {
 function renderLeagueSwitcher() {
   if (!leagueSwitcher) return;
   leagueSwitcher.innerHTML = '';
-  leagues.forEach(l => {
+
+  const authorizedLeagues = getUserAuthorizedLeagues();
+
+  if (authorizedLeagues.length === 0) {
+    leagueSwitcher.innerHTML = `<option value="">NESSUNA LEGA PARTECIPATA</option>`;
+    return;
+  }
+
+  authorizedLeagues.forEach(l => {
     const opt = document.createElement('option');
     opt.value = l.id;
     opt.textContent = `LEGA: ${l.name} (${l.inviteCode || l.id})`;
@@ -908,6 +934,15 @@ function renderLeagueSwitcher() {
 }
 
 function switchActiveLeague(leagueId) {
+  const targetLeague = leagues.find(l => l.id === leagueId);
+  if (!targetLeague) return;
+
+  if (!isUserParticipantInLeague(targetLeague)) {
+    showToast('🔒 ACCESSO NEGATO: NON SEI ISCRITTO A QUESTA LEGA.');
+    renderLeagueSwitcher();
+    return;
+  }
+
   activeLeagueId = leagueId;
   saveMultiLeagues();
   renderLeagueSwitcher();
@@ -958,6 +993,7 @@ function createLeagueByAdmin(event) {
       {
         id: adminId,
         name: adminName + ' (ADMIN)',
+        email: adminEmail,
         prediction: SERIE_A_TEAMS.map(t => t.id),
         isLocked: false,
         score: 0,
@@ -1026,14 +1062,16 @@ async function joinLeagueByInvite(event) {
 
   activeLeagueId = targetLeague.id;
 
-  const existingP = targetLeague.participants.find(p => p.name.toUpperCase() === playerName);
+  const existingP = targetLeague.participants.find(p => (p.email && p.email.toLowerCase() === playerEmail) || p.name.toUpperCase() === playerName);
   if (existingP) {
+    existingP.email = playerEmail;
     targetLeague.activeParticipantId = existingP.id;
   } else {
     const newPlayerId = 'p_' + Date.now();
     targetLeague.participants.push({
       id: newPlayerId,
       name: playerName,
+      email: playerEmail,
       prediction: SERIE_A_TEAMS.map(t => t.id),
       isLocked: false,
       score: 0,
@@ -1057,6 +1095,12 @@ function showJoinModal(league) {
 function getActiveParticipant() {
   const curLeague = getActiveLeague();
   if (!curLeague) return null;
+
+  if (currentForumUser) {
+    const userMatch = curLeague.participants.find(p => (p.email && p.email.toLowerCase() === currentForumUser.email.toLowerCase()) || p.name.toUpperCase() === currentForumUser.name.toUpperCase());
+    if (userMatch) return userMatch;
+  }
+
   return curLeague.participants.find(p => p.id === curLeague.activeParticipantId) || curLeague.participants[0];
 }
 
@@ -1076,6 +1120,7 @@ function addParticipant() {
   curLeague.participants.push({
     id: newId,
     name: name,
+    email: '',
     prediction: SERIE_A_TEAMS.map(t => t.id),
     isLocked: false,
     score: 0,
