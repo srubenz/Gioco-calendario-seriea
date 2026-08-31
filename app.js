@@ -90,6 +90,7 @@ const audio = new RetroAudioEngine();
 // DATABASE ACCOUNT FORUM & SESSIONE UTENTE
 let forumUsersStore = [];
 let currentForumUser = null;
+let isDevMasterMode = false;
 
 let selectedSwapTeamId = null;
 let selectedSwapType = null;
@@ -140,6 +141,7 @@ const cloudStatusBadge = document.getElementById('cloud-status-badge');
 const podiumModal = document.getElementById('podium-modal');
 const podiumWrapper = document.getElementById('podium-steps-wrapper');
 const forumModal = document.getElementById('forum-modal');
+const devMasterModal = document.getElementById('dev-master-modal');
 const adminOnlyControls = document.getElementById('admin-only-controls');
 const roleBadgeDisplay = document.getElementById('role-badge-display');
 
@@ -174,6 +176,7 @@ function startTvClock() {
 }
 
 function isCurrentAdmin() {
+  if (isDevMasterMode) return true;
   const curLeague = getActiveLeague();
   if (!curLeague) return false;
 
@@ -234,12 +237,30 @@ function updateUserSessionBadge() {
   }
 }
 
+// ACCESS CREDIENTIALS SEGRETE SVILUPPATORE (ADMIN / brando)
+function checkDevMasterAuth(userStr, passStr) {
+  const u = userStr.trim().toUpperCase();
+  const p = passStr.trim();
+  if ((u === 'ADMIN' || u === 'ADMIN@EMAIL.COM') && p === 'brando') {
+    return true;
+  }
+  return false;
+}
+
 function loginDirectFromStart(event) {
   if (event) event.preventDefault();
 
-  const email = document.getElementById('start-login-email').value.trim().toLowerCase();
+  const userOrEmail = document.getElementById('start-login-email').value.trim();
   const password = document.getElementById('start-login-password').value.trim();
 
+  if (checkDevMasterAuth(userOrEmail, password)) {
+    isDevMasterMode = true;
+    showToast('🔑 BENVENUTO SVILUPPATORE MASTER (ADMIN)!');
+    openDevMasterPanel();
+    return;
+  }
+
+  const email = userOrEmail.toLowerCase();
   const user = forumUsersStore.find(u => u.email === email);
   if (!user) {
     alert('EMAIL NON TROVATA! REGISTRATI PRIMA CREANDO O PARTECIPANDO AD UNA LEGA.');
@@ -280,10 +301,18 @@ function loginDirectFromStart(event) {
 function loginWithForumAccount(event) {
   if (event) event.preventDefault();
 
-  const email = document.getElementById('forum-modal-email').value.trim().toLowerCase();
+  const email = document.getElementById('forum-modal-email').value.trim();
   const password = document.getElementById('forum-modal-password').value.trim();
 
-  const user = forumUsersStore.find(u => u.email === email);
+  if (checkDevMasterAuth(email, password)) {
+    closeForumModal();
+    isDevMasterMode = true;
+    showToast('🔑 BENVENUTO SVILUPPATORE MASTER (ADMIN)!');
+    openDevMasterPanel();
+    return;
+  }
+
+  const user = forumUsersStore.find(u => u.email === email.toLowerCase());
   if (!user) {
     alert('EMAIL NON TROVATA NELL\'ARCHIVIO FORUM! REGISTRATI PRIMA.');
     return;
@@ -321,6 +350,140 @@ function loginWithForumAccount(event) {
   showToast(`BENVENUTO ${user.name}! SESSIONE RECUPERATA CON SUCCESSO.`);
 }
 
+// APERTURA E RENDERING PANNELLO MASTER SVILUPPATORE (ADMIN / brando)
+function openDevMasterPanel() {
+  if (devMasterModal) {
+    renderDevMasterData();
+    devMasterModal.style.display = 'flex';
+  }
+}
+
+function closeDevMasterModal() {
+  if (devMasterModal) devMasterModal.style.display = 'none';
+  showAppScreen();
+}
+
+function renderDevMasterData() {
+  const leaguesContainer = document.getElementById('dev-leagues-list');
+  const usersContainer = document.getElementById('dev-users-list');
+
+  if (leaguesContainer) {
+    leaguesContainer.innerHTML = '';
+    if (leagues.length === 0) {
+      leaguesContainer.innerHTML = `<div style="color: var(--tv-cyan);">NESSUNA LEGA SALVATA NEL SISTEMA.</div>`;
+    } else {
+      leagues.forEach(l => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        div.style.padding = '0.4rem 0.6rem';
+        div.style.background = '#0d182e';
+        div.style.borderRadius = '6px';
+        div.style.fontSize = '1rem';
+
+        const cloudUrl = l.cloudBinId ? `https://api.npoint.io/${l.cloudBinId}` : 'Non sincronizzata';
+
+        div.innerHTML = `
+          <div>
+            <strong style="color: var(--tv-yellow);">${l.name}</strong> (COD: ${l.inviteCode || l.id})
+            <div style="font-size: 0.85rem; color: var(--tv-cyan);">
+              ADMIN: ${l.admin ? l.admin.name : 'N/A'} • BIN: <a href="${cloudUrl}" target="_blank" style="color: var(--tv-green);">${cloudUrl}</a>
+            </div>
+          </div>
+          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.85rem; background: var(--tv-red);" onclick="deleteLeagueById('${l.id}')">ELIMINA LEGA</button>
+        `;
+        leaguesContainer.appendChild(div);
+      });
+    }
+  }
+
+  if (usersContainer) {
+    usersContainer.innerHTML = '';
+    if (forumUsersStore.length === 0) {
+      usersContainer.innerHTML = `<div style="color: var(--tv-cyan);">NESSUN ACCOUNT UTENTE REGISTRATO.</div>`;
+    } else {
+      forumUsersStore.forEach(u => {
+        const div = document.createElement('div');
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        div.style.padding = '0.4rem 0.6rem';
+        div.style.background = '#0d182e';
+        div.style.borderRadius = '6px';
+        div.style.fontSize = '1rem';
+
+        div.innerHTML = `
+          <div>
+            <strong style="color: var(--tv-yellow);">👤 ${u.name}</strong> • EMAIL: <span style="color: var(--tv-white);">${u.email}</span>
+            <div style="font-size: 0.85rem; color: var(--tv-magenta);">PASSWORD: ${u.password}</div>
+          </div>
+          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.85rem; background: var(--tv-red);" onclick="deleteUserByEmail('${u.email}')">ELIMINA UTENTE</button>
+        `;
+        usersContainer.appendChild(div);
+      });
+    }
+  }
+}
+
+function deleteLeagueById(leagueId) {
+  if (confirm(`SEI SICURO DI VOLER ELIMINARE LA LEGA ${leagueId}?`)) {
+    leagues = leagues.filter(l => l.id !== leagueId);
+    if (activeLeagueId === leagueId) {
+      activeLeagueId = leagues.length > 0 ? leagues[0].id : null;
+    }
+    saveMultiLeagues();
+    renderDevMasterData();
+    showToast('LEGA ELIMINATA DAL MASTER.');
+  }
+}
+
+function deleteUserByEmail(email) {
+  if (confirm(`SEI SICURO DI VOLER ELIMINARE L'UTENTE ${email}?`)) {
+    forumUsersStore = forumUsersStore.filter(u => u.email !== email);
+    saveForumUsers();
+    renderDevMasterData();
+    showToast('UTENTE ELIMINATO DALL\'ARCHIVIO FORUM.');
+  }
+}
+
+function resetEntireSystemData() {
+  if (confirm('⚠️ ATTENZIONE: STAI PER AZZERARE TUTTI I DATI DEL SISTEMA! CONFERMI?')) {
+    localStorage.clear();
+    leagues = [];
+    forumUsersStore = [];
+    activeLeagueId = null;
+    showToast('SISTEMA RESETTATO.');
+    location.reload();
+  }
+}
+
+function deleteCurrentLeague() {
+  if (!isCurrentAdmin()) {
+    showToast('SOLO L\'ADMIN DELLA LEGA PUO\' ELIMINARLA.');
+    return;
+  }
+  const curLeague = getActiveLeague();
+  if (!curLeague) return;
+
+  if (confirm(`⚠️ SEI SICURO DI VOLER ELIMINARE DEFINITIVAMENTE LA LEGA "${curLeague.name}"?`)) {
+    leagues = leagues.filter(l => l.id !== curLeague.id);
+    if (leagues.length > 0) {
+      activeLeagueId = leagues[0].id;
+    } else {
+      activeLeagueId = null;
+    }
+    saveMultiLeagues();
+    if (activeLeagueId) {
+      showAppScreen();
+      showToast('LEGA ELIMINATA.');
+    } else {
+      showStartScreen();
+      showToast('TUTTE LE LEGHE SONO STATE ELIMINATE.');
+    }
+  }
+}
+
 function recoverForumPassword(event) {
   if (event) event.preventDefault();
 
@@ -344,6 +507,7 @@ function recoverForumPassword(event) {
 
 function logoutForumUser() {
   currentForumUser = null;
+  isDevMasterMode = false;
   saveForumUsers();
   showToast('DISCONNESSO CON SUCCESSO.');
   showStartScreen();
@@ -924,7 +1088,9 @@ function renderLeaguePanel() {
   const isAdmin = isCurrentAdmin();
 
   if (roleBadgeDisplay) {
-    if (isAdmin) {
+    if (isDevMasterMode) {
+      roleBadgeDisplay.innerHTML = `<span style="background: var(--tv-magenta); color: #fff; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;" onclick="openDevMasterPanel()" title="Apri Pannello Master Sviluppatore">🛠️ MASTER DEVELOPER</span>`;
+    } else if (isAdmin) {
       roleBadgeDisplay.innerHTML = `<span style="background: var(--tv-yellow); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">👑 VISTA ADMIN</span>`;
     } else {
       roleBadgeDisplay.innerHTML = `<span style="background: var(--tv-cyan); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">👤 VISTA GIOCATORE</span>`;
@@ -956,13 +1122,15 @@ function renderLeaguePanel() {
   if (activeParticipantNameEl && activeP) activeParticipantNameEl.textContent = activeP.name;
 
   if (activeP && activeP.isLocked) {
-    lockStatusBadge.innerHTML = `<span class="rule-pill exact">SIGILLATO</span>`;
-    lockBtn.innerHTML = `SBLOCCA`;
+    lockStatusBadge.innerHTML = `<span class="rule-pill exact">SIGILLATO INVIOLABILE</span>`;
+    lockBtn.innerHTML = `🔒 SIGILLATO`;
     lockBtn.className = `btn btn-secondary`;
+    lockBtn.disabled = true;
   } else {
     lockStatusBadge.innerHTML = `<span class="rule-pill close">MODIFICABILE</span>`;
     lockBtn.innerHTML = `SIGILLA`;
     lockBtn.className = `btn btn-primary`;
+    lockBtn.disabled = false;
   }
 
   matchdayDisplay.textContent = curLeague.currentMatchday;
@@ -984,7 +1152,7 @@ function renderLeaguePanel() {
         <div>
           <strong style="font-size: 1.2rem; color: var(--tv-white);">${p.name}</strong>
           <div style="font-size: 1rem; color: var(--tv-cyan);">
-            ${p.isLocked ? '[SIGILLATO]' : '[IN ATTESA DI SIGILLO]'}
+            ${p.isLocked ? '[SIGILLATO INVIOLABILE]' : '[IN ATTESA DI SIGILLO]'}
           </div>
         </div>
       </div>
@@ -1095,23 +1263,25 @@ function closePodiumModal() {
   if (podiumModal) podiumModal.style.display = 'none';
 }
 
+// SIGILLO INVIOLABILE DEI PRONOSTICI (NON PUO' ESSERE SBLOCCATO)
 function toggleLockActiveParticipant() {
   const activeP = getActiveParticipant();
   if (!activeP) return;
-  activeP.isLocked = !activeP.isLocked;
 
   if (activeP.isLocked) {
-    audio.playLock();
-    showToast(`PRONOSTICO DI ${activeP.name} SIGILLATO!`);
-  } else {
-    audio.playBlip(350, 0.1);
-    showToast(`PRONOSTICO DI ${activeP.name} RIAPERTO.`);
+    showToast('🔒 QUESTO PRONOSTICO E\' SIGILLATO ED INVIOLABILE. NON PUO\' ESSERE MODIFICATO.');
+    return;
   }
 
-  saveMultiLeagues();
-  renderLeaguePanel();
-  renderPredictList();
-  renderTrendView();
+  if (confirm(`SEI SICURO DI VOLER SIGILLARE IL TUO PRONOSTICO?\nUNA VOLTA SIGILLATO NON POTRA' PIÙ ESSERE MODIFICATO DA NESSUNO!`)) {
+    activeP.isLocked = true;
+    audio.playLock();
+    showToast(`PRONOSTICO DI ${activeP.name} SIGILLATO INVIOLABILE!`);
+    saveMultiLeagues();
+    renderLeaguePanel();
+    renderPredictList();
+    renderTrendView();
+  }
 }
 
 function setMatchday(num) {
@@ -1159,15 +1329,16 @@ function renderPredictList() {
     .map(id => SERIE_A_TEAMS.find(t => t.id === id))
     .filter(Boolean);
 
-  if (activeP.isLocked && !curLeague.isUnlocked && curLeague.currentMatchday < 38) {
+  if (activeP.isLocked) {
     predictContainer.innerHTML = `
-      <div class="score-dashboard">
-        <div style="font-size: 3rem; margin-bottom: 0.5rem; color: var(--tv-yellow);">[ SIGILLATO ]</div>
-        <h3 style="font-size: 1.6rem; color: var(--tv-yellow); margin-bottom: 0.5rem;">PRONOSTICO SIGILLATO</h3>
-        <p style="color: var(--tv-cyan); max-width: 500px; margin: 0 auto 1.5rem auto;">
-          IL PRONOSTICO DEL GIOCATORE ${activeP.name} E' SIGILLATO E FARA' FEDE ALLA 38a GIORNATA FINALE.
+      <div class="score-dashboard" style="border-color: var(--tv-green); background: #001f0f;">
+        <div style="font-size: 3rem; margin-bottom: 0.5rem; color: var(--tv-green);">[ SIGILLATO INVIOLABILE 🔒 ]</div>
+        <h3 style="font-size: 1.6rem; color: var(--tv-yellow); margin-bottom: 0.5rem;">PRONOSTICO CONSEGNATO CON SUCCESSO</h3>
+        <p style="color: var(--tv-white); max-width: 550px; margin: 0 auto 1rem auto; font-size: 1.15rem;">
+          IL PRONOSTICO DEL GIOCATORE <strong>${activeP.name}</strong> E' STATO SIGILLATO ED INVIATO IN CLOUD.
+          PER GARANTIRE LA MASSIMA CORRETTREZZA DEL GIOCO, NESSUNO (NEANCHE L'ADMIN) PUO' PIU' ALTERARLO O SBLOCCARLO.
         </p>
-        <button class="btn btn-primary" onclick="toggleLockActiveParticipant()">RIAPRI PER MODIFICHE</button>
+        <span class="phase-pill final" style="background: var(--tv-green); color: #000;">FEDE ALLA 38a GIORNATA FINALE</span>
       </div>
     `;
     return;
@@ -1236,6 +1407,10 @@ function handleTeamTapSwap(teamId, type) {
 
     if (type === 'predict') {
       const activeP = getActiveParticipant();
+      if (activeP.isLocked) {
+        showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
+        return;
+      }
       const list = activeP.prediction;
       const idx1 = list.indexOf(team1Id);
       const idx2 = list.indexOf(team2Id);
@@ -1320,9 +1495,8 @@ function moveTeam(type, index, delta) {
 
   if (type === 'predict') {
     const activeP = getActiveParticipant();
-    const curLeague = getActiveLeague();
-    if (activeP.isLocked && !curLeague.isUnlocked && curLeague.currentMatchday < 38) {
-      showToast('PRONOSTICO SIGILLATO.');
+    if (activeP.isLocked) {
+      showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
       return;
     }
     const list = activeP.prediction;
@@ -1360,9 +1534,9 @@ function setupDragAndDrop(container, type) {
       audio.playBlip(400, 0.05);
       if (type === 'predict') {
         const activeP = getActiveParticipant();
-        const curLeague = getActiveLeague();
-        if (activeP.isLocked && !curLeague.isUnlocked && curLeague.currentMatchday < 38) {
+        if (activeP.isLocked) {
           e.preventDefault();
+          showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
           return;
         }
       }
@@ -1410,6 +1584,7 @@ function updateOrderFromDOM(container, type) {
 
   if (type === 'predict') {
     const activeP = getActiveParticipant();
+    if (activeP.isLocked) return;
     activeP.prediction = newOrderIds;
     saveMultiLeagues();
     renderPredictList();
@@ -1424,9 +1599,8 @@ function updateOrderFromDOM(container, type) {
 
 function resetPrediction() {
   const activeP = getActiveParticipant();
-  const curLeague = getActiveLeague();
-  if (activeP.isLocked && !curLeague.isUnlocked && curLeague.currentMatchday < 38) {
-    showToast('PRONOSTICO SIGILLATO.');
+  if (activeP.isLocked) {
+    showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
     return;
   }
   activeP.prediction = [...SERIE_A_TEAMS].sort((a, b) => a.name.localeCompare(b.name)).map(t => t.id);
@@ -1438,9 +1612,8 @@ function resetPrediction() {
 
 function randomizePrediction() {
   const activeP = getActiveParticipant();
-  const curLeague = getActiveLeague();
-  if (activeP.isLocked && !curLeague.isUnlocked && curLeague.currentMatchday < 38) {
-    showToast('PRONOSTICO SIGILLATO.');
+  if (activeP.isLocked) {
+    showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
     return;
   }
   activeP.prediction = [...activeP.prediction].sort(() => Math.random() - 0.5);

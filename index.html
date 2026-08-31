@@ -9,6 +9,44 @@
 </head>
 <body>
 
+  <!-- MODALE MASTER SVILUPPATORE SEGRETA (ADMIN / brando) -->
+  <div id="dev-master-modal" class="start-screen-overlay" style="display: none; z-index: 3000;">
+    <div class="start-card" style="max-width: 850px; text-align: left; border-color: var(--tv-magenta); box-shadow: 0 0 40px rgba(255, 0, 127, 0.4);">
+      <div class="tv-top-bar" style="margin-bottom: 1rem;">
+        <span class="tv-logo" style="background: var(--tv-magenta);">🛠️ MASTER DEVELOPER PANEL</span>
+        <span style="color: var(--tv-yellow); font-weight: 700;">ACCESSO RISERVATO SVILUPPATORE (ADMIN)</span>
+      </div>
+
+      <h1 class="start-title" style="background: var(--tv-magenta); color: #fff; margin-bottom: 0.5rem;">
+        🛠️ PANNELLO CONTROLLO SVILUPPATORE
+      </h1>
+      <p style="color: var(--tv-cyan); font-size: 1.1rem; margin-bottom: 1.2rem;">
+        Pannello master riservato: gestione cloud bins, privacy account utenti e controllo totale del sistema.
+      </p>
+
+      <!-- SEZIONE 1: CLOUD BINS DI TUTTE LE LEGHE CREATE -->
+      <h3 style="color: var(--tv-yellow); margin-bottom: 0.5rem; border-bottom: 1px solid var(--tv-yellow); padding-bottom: 0.3rem;">
+        🌐 ISPEZIONE CLOUD BINS LEGHE CREATE
+      </h3>
+      <div id="dev-leagues-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 180px; overflow-y: auto; margin-bottom: 1.5rem; background: #02050e; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--tv-cyan);">
+        <!-- Popolato dinamicamente -->
+      </div>
+
+      <!-- SEZIONE 2: ARCHIVIO ACCOUNT UTENTI E PRIVACY -->
+      <h3 style="color: var(--tv-cyan); margin-bottom: 0.5rem; border-bottom: 1px solid var(--tv-cyan); padding-bottom: 0.3rem;">
+        👤 GESTIONE PRIVACY & ACCOUNT UTENTI ISCRITTI
+      </h3>
+      <div id="dev-users-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; margin-bottom: 1.5rem; background: #02050e; padding: 0.8rem; border-radius: 8px; border: 1px solid var(--tv-cyan);">
+        <!-- Popolato dinamicamente -->
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <button class="btn btn-secondary" onclick="resetEntireSystemData()" style="background: var(--tv-red);">⚠️ RESET TOTALE SISTEMA</button>
+        <button class="btn btn-primary" onclick="closeDevMasterModal()">❌ CHIUDI PANNELLO SVILUPPATORE</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODALE FORUM: ARCHIVIO UTENTI & RECUPERO LOGIN/PASSWORD -->
   <div id="forum-modal" class="start-screen-overlay" style="display: none; z-index: 2000;">
     <div class="start-card" style="max-width: 720px; text-align: left; border-color: var(--tv-cyan);">
@@ -170,8 +208,8 @@
           <h3 style="color: var(--tv-green); margin-bottom: 0.8rem;">🔑 ACCEDI AL TUO ACCOUNT</h3>
           <form onsubmit="loginDirectFromStart(event)" class="start-form">
             <div class="form-group">
-              <label for="start-login-email">LA TUA EMAIL *</label>
-              <input type="email" id="start-login-email" placeholder="tua@email.com" required>
+              <label for="start-login-email">LA TUA EMAIL / USERNAME *</label>
+              <input type="text" id="start-login-email" placeholder="tua@email.com" required>
             </div>
             <div class="form-group">
               <label for="start-login-password">LA TUA PASSWORD *</label>
@@ -202,7 +240,7 @@
             <div id="cloud-status-badge">
               <span style="background: var(--tv-green); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">🟢 CLOUD ONLINE</span>
             </div>
-            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 11:36</span>
+            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 12:17</span>
           </div>
         </div>
 
@@ -371,9 +409,12 @@
             </div>
           </div>
 
-          <!-- Giornata Campionato -->
+          <!-- Giornata Campionato & Eliminazione Lega -->
           <div class="score-dashboard" style="text-align: left; padding: 1rem; margin-bottom: 1.25rem;">
-            <h4 style="color: var(--tv-yellow); margin-bottom: 0.5rem;">👑 PANNELLO ADMIN: AVANZAMENTO CAMPIONATO</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+              <h4 style="color: var(--tv-yellow); margin: 0;">👑 PANNELLO ADMIN: AVANZAMENTO CAMPIONATO</h4>
+              <button class="btn" style="background: var(--tv-red); color: #fff;" onclick="deleteCurrentLeague()">🗑️ ELIMINA QUESTA LEGA</button>
+            </div>
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
               <div>
                 <div style="font-size: 2rem; color: var(--tv-green); font-weight: 700;">GIORNATA <span id="matchday-display">2</span> / 38</div>
