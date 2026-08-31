@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serie A 2026-2027 - Lega Pronostico</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚽</text></svg>">
+</head>
+<body>
+
+  <!-- MODALE FORUM: ARCHIVIO UTENTI & RECUPERO LOGIN/PASSWORD -->
+  <div id="forum-modal" class="start-screen-overlay" style="display: none; z-index: 2000;">
+    <div class="start-card" style="max-width: 720px; text-align: left; border-color: var(--tv-cyan);">
+      <div class="tv-top-bar" style="margin-bottom: 1rem;">
+        <span class="tv-logo">⚽ SERIE A LEGA</span>
+        <span style="color: var(--tv-yellow); font-weight: 700;">FORUM ACCOUNT & RECUPERO</span>
+      </div>
+
+      <h1 class="start-title" style="margin-bottom: 0.5rem;">📂 ARCHIVIO UTENTI FORUM</h1>
+      <p style="color: var(--tv-cyan); font-size: 1.1rem; margin-bottom: 1.2rem;">
+        Sei già registrato? Effettua il login o recupera i tuoi dati d'accesso per rientrare nella tua Lega!
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem;">
+        
+        <!-- LOGIN UTENTE REGISTRATO -->
+        <div style="border: 2px solid var(--tv-cyan); padding: 1rem; background: #001a22; border-radius: 10px;">
+          <h3 style="color: var(--tv-cyan); margin-bottom: 0.8rem;">🔑 ACCEDI AL TUO ACCOUNT</h3>
+          <form onsubmit="loginWithForumAccount(event)" class="start-form">
+            <div class="form-group">
+              <label for="forum-modal-email">EMAIL *</label>
+              <input type="email" id="forum-modal-email" placeholder="tua@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="forum-modal-password">PASSWORD *</label>
+              <input type="password" id="forum-modal-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="start-btn" style="background: var(--tv-cyan); color: #000;">
+              ▶ ENTRA NEL TUO PROFILO
+            </button>
+          </form>
+        </div>
+
+        <!-- RECUPERO CREDENZIALI -->
+        <div style="border: 2px solid var(--tv-yellow); padding: 1rem; background: #221d00; border-radius: 10px;">
+          <h3 style="color: var(--tv-yellow); margin-bottom: 0.8rem;">❓ RECUPERA LOGIN DIMENTICATO</h3>
+          <p style="font-size: 0.95rem; color: var(--tv-white); margin-bottom: 0.8rem;">
+            Hai dimenticato la tua password o cambiato dispositivo? Inserisci la tua email.
+          </p>
+          <form onsubmit="recoverForumPassword(event)" class="start-form">
+            <div class="form-group">
+              <label for="forum-recover-email">LA TUA EMAIL *</label>
+              <input type="email" id="forum-recover-email" placeholder="tua@email.com" required>
+            </div>
+            <button type="submit" class="start-btn" style="background: var(--tv-yellow); color: #000;">
+              🔍 RECUPERA DATI D'ACCESSO
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+      <h4 style="color: var(--tv-yellow); margin-bottom: 0.5rem;">REGISTRO UTENTI COMMUNITY FORUM</h4>
+      <div id="forum-users-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 160px; overflow-y: auto; margin-bottom: 1.2rem;">
+        <!-- Popolato dinamicamente -->
+      </div>
+
+      <div style="text-align: right;">
+        <button class="btn btn-secondary" onclick="closeForumModal()">❌ CHIUDI</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE CELEBRATIVA PODIO VINTAGE -->
+  <div id="podium-modal" class="start-screen-overlay" style="display: none; z-index: 2000;">
+    <div class="start-card" style="max-width: 720px; text-align: center; border-color: var(--tv-yellow); box-shadow: 0 0 40px var(--tv-yellow-glow);">
+      <div class="tv-top-bar" style="margin-bottom: 1rem;">
+        <span class="tv-logo">⚽ SERIE A LEGA</span>
+        <span style="color: var(--tv-yellow); font-weight: 700;">PREMIAZIONE FINALE</span>
+      </div>
+
+      <h1 class="start-title" id="podium-title" style="background: var(--tv-blue); color: var(--tv-yellow); margin-bottom: 0.5rem;">
+        🏆 PODIO VINCITORI LEGA
+      </h1>
+      <p style="color: var(--tv-cyan); font-size: 1.2rem; margin-bottom: 1.5rem;" id="podium-subtitle">
+        CLASSIFICA FINALE CAMPIONATO SERIE A 2026-2027
+      </p>
+
+      <div class="podium-container" id="podium-steps-wrapper">
+        <!-- Popolato dinamicamente in app.js -->
+      </div>
+
+      <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.8rem; flex-wrap: wrap;">
+        <button class="btn btn-accent" onclick="shareViaWhatsApp()">📱 CONDIVIDI VITTORIA SU WHATSAPP</button>
+        <button class="btn btn-primary" onclick="closePodiumModal()">❌ CHIUDI E VEDI DETTAGLIO</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHERMATA D'INGRESSO PRINCIPALE CON 3 BOX: CREA, PARTECIPA E LOGIN DIRETTO -->
+  <div id="screen-start" class="start-screen-overlay">
+    <div class="start-card" style="max-width: 920px;">
+      <div class="tv-top-bar" style="margin-bottom: 1rem;">
+        <span class="tv-logo">⚽ SERIE A LEGA</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button class="btn btn-accent" style="padding: 0.2rem 0.6rem; font-size: 0.95rem;" onclick="openForumModal()">📂 FORUM & RECUPERO PASS</button>
+          <span style="color: var(--tv-yellow); font-weight: 700;">SERIE A 2026-2027</span>
+        </div>
+      </div>
+      <h1 class="start-title">INIZIO PRONOSTICO LEGA</h1>
+      <p class="start-desc">Scegli la tua opzione: crea una nuova Lega, partecipa ad una Lega con codice o accedi al tuo account già esistente.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 1.5rem;">
+
+        <!-- BOX 1: CREA LEGA (ADMIN) -->
+        <div style="border: 2px solid var(--tv-yellow); padding: 1.2rem; background: #000033; border-radius: 12px; box-shadow: 0 0 15px rgba(255, 255, 0, 0.2);">
+          <h3 style="color: var(--tv-yellow); margin-bottom: 0.8rem;">👑 CREA LEGA (ADMIN)</h3>
+          <form onsubmit="createLeagueByAdmin(event)" class="start-form">
+            <div class="form-group">
+              <label for="admin-name">NOME ADMIN *</label>
+              <input type="text" id="admin-name" placeholder="ES. RUBEN" required>
+            </div>
+            <div class="form-group">
+              <label for="admin-email">EMAIL ADMIN *</label>
+              <input type="email" id="admin-email" placeholder="admin@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="admin-password">PASSWORD *</label>
+              <input type="password" id="admin-password" placeholder="••••••••" required>
+            </div>
+            <div class="form-group">
+              <label for="admin-league-name">NOME DELLA LEGA *</label>
+              <input type="text" id="admin-league-name" placeholder="ES. LEGA BAR 2026" required>
+            </div>
+            <button type="submit" class="start-btn" style="background: var(--tv-yellow); color: #000;">
+              ▶ CREA LEGA
+            </button>
+          </form>
+        </div>
+
+        <!-- BOX 2: PARTECIPA A UNA LEGA (GIOCATORE) -->
+        <div style="border: 2px solid var(--tv-cyan); padding: 1.2rem; background: #002222; border-radius: 12px; box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);">
+          <h3 style="color: var(--tv-cyan); margin-bottom: 0.8rem;">📩 PARTECIPA CON CODICE</h3>
+          <form onsubmit="joinLeagueByInvite(event)" class="start-form">
+            <div class="form-group">
+              <label for="join-invite-code">CODICE LEGA *</label>
+              <input type="text" id="join-invite-code" placeholder="ES. SERIEA-9X2A8K" required>
+            </div>
+            <div class="form-group">
+              <label for="join-player-name">IL TUO NOME *</label>
+              <input type="text" id="join-player-name" placeholder="ES. MARCO" required>
+            </div>
+            <div class="form-group">
+              <label for="join-player-email">LA TUA EMAIL *</label>
+              <input type="email" id="join-player-email" placeholder="tua@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="join-player-password">LA TUA PASSWORD *</label>
+              <input type="password" id="join-player-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="start-btn" style="background: var(--tv-cyan); color: #000;">
+              ▶ ENTRA IN LEGA
+            </button>
+          </form>
+        </div>
+
+        <!-- BOX 3: LOGIN DIRETTO PER UTENTI GIÀ REGISTRATI (ACCEDI) -->
+        <div style="border: 2px solid var(--tv-green); padding: 1.2rem; background: #002200; border-radius: 12px; box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);">
+          <h3 style="color: var(--tv-green); margin-bottom: 0.8rem;">🔑 ACCEDI AL TUO ACCOUNT</h3>
+          <form onsubmit="loginDirectFromStart(event)" class="start-form">
+            <div class="form-group">
+              <label for="start-login-email">LA TUA EMAIL *</label>
+              <input type="email" id="start-login-email" placeholder="tua@email.com" required>
+            </div>
+            <div class="form-group">
+              <label for="start-login-password">LA TUA PASSWORD *</label>
+              <input type="password" id="start-login-password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="start-btn" style="background: var(--tv-green); color: #000; margin-top: 2.2rem;">
+              ▶ LOGIN ED ENTRA
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SCHERMATA MAIN: APPLICAZIONE -->
+  <div id="screen-app" style="display: none;">
+
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="tv-top-bar">
+          <span class="tv-logo">⚽ SERIE A LEGA</span>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div id="role-badge-display"></div>
+            <div id="user-session-badge"></div>
+            <button id="sound-toggle-btn" class="btn" style="padding: 0.15rem 0.6rem; font-size: 0.95rem;" onclick="toggleSound()">🔊 SUONO: ON</button>
+            <div id="cloud-status-badge">
+              <span style="background: var(--tv-green); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">🟢 CLOUD ONLINE</span>
+            </div>
+            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 11:36</span>
+          </div>
+        </div>
+
+        <!-- SELETTORE MULTI-LEGA IN INTESTAZIONE -->
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <h1 class="app-title" style="margin: 0;">SERIE A 2026-2027 - PRONOSTICO CLASSIFICA</h1>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <select id="league-switcher" onchange="switchActiveLeague(this.value)" style="background: var(--tv-blue); color: var(--tv-yellow); border: 2px solid var(--tv-yellow); padding: 0.35rem 0.6rem; font-family: var(--font-televideo); font-size: 1.1rem; font-weight: 700; cursor: pointer; border-radius: 6px;">
+              <!-- Popolato dinamicamente -->
+            </select>
+            <button class="btn" onclick="showStartScreen()" style="padding: 0.35rem 0.6rem; font-size: 0.95rem;">+ NUOVA LEGA</button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+          <p class="app-subtitle" id="matchday-status-text" style="margin: 0;">
+            GIORNATA 2 DI 38 IN CORSO. PRONOSTICI SIGILLATI FINO A FINE CAMPIONATO.
+          </p>
+          <div>
+            <span class="phase-pill final">🔥 CLASSIFICA FINALE 38a GIORNATA</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Layout Principale dell'Applicazione -->
+    <main class="main-layout">
+
+      <!-- Navigazione Schede -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-target="predict-view" onclick="switchTab('predict-view')">
+          📌 PREVISIONE
+        </button>
+        <button class="tab-btn" data-target="trend-view" onclick="switchTab('trend-view')">
+          📈 ANDAMENTO & FORMA
+        </button>
+        <button class="tab-btn" data-target="league-view" onclick="switchTab('league-view')">
+          👥 LEGA & INVITI
+        </button>
+        <button class="tab-btn" data-target="actual-view" onclick="switchTab('actual-view')">
+          🏆 CLASSIFICA REALE
+        </button>
+        <button class="tab-btn" data-target="results-view" onclick="switchTab('results-view')">
+          📊 RISULTATI & PUNTI
+        </button>
+      </nav>
+
+      <!-- SCHEDA 1: CALENDARIO SERIE A & POSIZIONAMENTO SQUADRE -->
+      <section id="predict-view" class="view-section active" style="display: block;">
+
+        <!-- REGOLAMENTO PUNTEGGI OPZIONE 1 -->
+        <div style="border: 2px solid var(--tv-yellow); padding: 0.6rem 0.8rem; margin-bottom: 1rem; background: #000033; border-radius: 8px;">
+          <span style="color: var(--tv-yellow); font-weight: 700;">REGOLE PUNTEGGIO:</span>
+          <span class="rule-pill exact">+3 PTS ESATTA</span>
+          <span class="rule-pill close">+1 PTS SCARTO 1</span>
+          <span class="rule-pill exact" style="background: var(--tv-yellow); color: #000;">🏆 BONUS SCUDETTO +2 PTS</span>
+          <span class="rule-pill close" style="background: var(--tv-red); color: #fff;">🔴 BONUS RETROCESSE +2 PTS</span>
+        </div>
+
+        <!-- WIDGET CALENDARIO -->
+        <div style="border: 2px solid var(--tv-cyan); padding: 0.8rem; margin-bottom: 1.25rem; border-radius: 10px;">
+          <div style="background: var(--tv-blue); color: var(--tv-yellow); padding: 0.3rem 0.6rem; font-weight: 700; margin-bottom: 0.5rem; border-radius: 4px;">
+            CALENDARIO SERIE A 2026-2027 - 2a GIORNATA
+          </div>
+          <div id="fixtures-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.4rem;">
+            <!-- Popolato dinamicamente in app.js -->
+          </div>
+        </div>
+
+        <div class="controls-bar">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <span style="color: var(--tv-yellow); font-weight: 700;">GIOCATORE:</span>
+            <select id="participant-select" onchange="switchParticipant(this.value)" style="padding: 0.3rem 0.6rem; background: var(--tv-black); color: var(--tv-yellow); border: 2px solid var(--tv-yellow); font-family: var(--font-televideo); font-size: 1.2rem; font-weight: 700; border-radius: 6px;">
+              <!-- Opzioni iscritte -->
+            </select>
+            <div id="lock-status-badge"></div>
+          </div>
+
+          <div class="btn-group">
+            <button id="lock-btn" class="btn btn-primary" onclick="toggleLockActiveParticipant()">SIGILLA</button>
+            <button class="btn" onclick="randomizePrediction()">CASUALE</button>
+            <button class="btn" onclick="resetPrediction()">RESET</button>
+          </div>
+        </div>
+
+        <!-- Elenco Squadre Posizionabili -->
+        <div id="predict-list" class="standings-container">
+          <!-- Generato dinamicamente in app.js -->
+        </div>
+      </section>
+
+      <!-- SCHEDA NUOVA: 📈 ANDAMENTO & FORMA LEGA -->
+      <section id="trend-view" class="view-section" style="display: none;">
+        <div class="score-dashboard" style="text-align: left; padding: 1.2rem; margin-bottom: 1.25rem; border-color: var(--tv-green);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.8rem;">
+            <h3 style="color: var(--tv-green); margin: 0; font-size: 1.5rem;">📈 MONITOR FORMA & COSTANZA DELLA LEGA</h3>
+            <span class="rule-pill exact" style="background: var(--tv-green); color: #000;">ANALISI LIVE</span>
+          </div>
+          <p style="font-size: 1.05rem; color: var(--tv-white); margin: 0;">
+            Scopri quale giocatore sta ottenendo le prestazioni migliori, chi ha lo scarto di errore più basso e chi è in testa alla lega!
+          </p>
+        </div>
+
+        <!-- HIGHLIGHT LEADER DEL MOMENTO -->
+        <div id="trend-leader-card" class="score-dashboard" style="border-color: var(--tv-yellow); margin-bottom: 1.25rem; background: #1f1b00;">
+          <!-- Popolato dinamicamente in app.js -->
+        </div>
+
+        <!-- TABELLA COMPLETA ANDAMENTO & COSTANZA -->
+        <h3 style="color: var(--tv-yellow); margin-bottom: 0.5rem;">RANKING DI RENDIMENTO & ACCURATEZZA</h3>
+        <div class="results-table-wrapper">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>POS</th>
+                <th>GIOCATORE</th>
+                <th>PUNTI PROIETTATI</th>
+                <th>SCARTO MEDIO POSIZIONI</th>
+                <th>ACCURATEZZA %</th>
+                <th>STATO FORMA</th>
+              </tr>
+            </thead>
+            <tbody id="trend-table-body">
+              <!-- Popolato dinamicamente in app.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SCHEDA 2: GESTIONE LEGA & LINK INVITO -->
+      <section id="league-view" class="view-section" style="display: none;">
+        <div class="controls-bar">
+          <div>
+            <h3 style="color: var(--tv-yellow); background: var(--tv-blue); padding: 0.3rem 0.6rem; display: inline-block; border-radius: 4px;">GESTIONE LEGA</h3>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-accent" onclick="copyWhatsAppLeaderboardText()">📋 COPIA CLASSIFICA PER WHATSAPP</button>
+          </div>
+        </div>
+
+        <!-- BOX INVITO PER L'ADMIN -->
+        <div class="score-dashboard" style="text-align: left; padding: 1.2rem; margin-bottom: 1.25rem; border-color: var(--tv-cyan);">
+          <h4 style="color: var(--tv-cyan); margin-bottom: 0.5rem; font-size: 1.3rem;">🔗 INVITA GIOCATORI NELLA LEGA (SOLO 1 CLIC)</h4>
+          <p style="font-size: 1.05rem; color: var(--tv-white); margin-bottom: 0.8rem;">
+            Invia questo link ai tuoi amici su WhatsApp o Telegram. Loro entreranno subito inserendo i propri dati d'accesso!
+          </p>
+
+          <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem;">
+            <div style="background: var(--tv-yellow); color: #000; padding: 0.4rem 0.8rem; font-weight: 700; font-size: 1.3rem; border-radius: 6px;" id="league-invite-code-display">
+              CODICE LEGA
+            </div>
+            <input type="text" id="league-invite-link-display" readonly style="flex: 1; min-width: 240px; padding: 0.4rem 0.6rem; background: var(--tv-black); border: 2px solid var(--tv-cyan); color: var(--tv-cyan); font-family: var(--font-televideo); font-size: 1.1rem; border-radius: 6px;">
+            <button class="btn btn-accent" onclick="shareViaWhatsApp()">📱 CONDIVIDI SU WHATSAPP</button>
+            <button class="btn" onclick="copyInviteLink()">📋 COPIA LINK</button>
+          </div>
+        </div>
+
+        <!-- CONTROLLI ESCLUSIVI PER L'ADMIN DELLA LEGA -->
+        <div id="admin-only-controls">
+          <!-- Aggiunta Giocatore Manuale dall'Admin -->
+          <div class="score-dashboard" style="text-align: left; padding: 1rem; margin-bottom: 1.25rem;">
+            <h4 style="color: var(--tv-cyan); margin-bottom: 0.5rem;">👑 PANNELLO ADMIN: AGGIUNGI GIOCATORE MANUALMENTE</h4>
+            <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+              <input type="text" id="new-participant-name" placeholder="ES. MARCO" style="flex: 1; min-width: 200px; padding: 0.5rem; background: var(--tv-black); border: 2px solid var(--tv-cyan); color: #fff; font-family: var(--font-televideo); font-size: 1.2rem; border-radius: 6px;">
+              <button class="btn btn-accent" onclick="addParticipant()">AGGIUNGI</button>
+            </div>
+          </div>
+
+          <!-- Giornata Campionato -->
+          <div class="score-dashboard" style="text-align: left; padding: 1rem; margin-bottom: 1.25rem;">
+            <h4 style="color: var(--tv-yellow); margin-bottom: 0.5rem;">👑 PANNELLO ADMIN: AVANZAMENTO CAMPIONATO</h4>
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <div style="font-size: 2rem; color: var(--tv-green); font-weight: 700;">GIORNATA <span id="matchday-display">2</span> / 38</div>
+              </div>
+              <div class="btn-group">
+                <button class="btn" onclick="setMatchday(getActiveLeague().currentMatchday - 1)">◄ PREC</button>
+                <button class="btn" onclick="setMatchday(getActiveLeague().currentMatchday + 1)">SUCC ►</button>
+                <button class="btn btn-primary" onclick="unlockFinalResults()">🔥 FINALE (G38)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="color: var(--tv-cyan); margin-bottom: 0.5rem;">GIOCATORI ISCRITTI ALLA LEGA</h3>
+        <div id="league-participants-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <!-- Generato dinamicamente in app.js -->
+        </div>
+      </section>
+
+      <!-- SCHEDA 3: CLASSIFICA REALE -->
+      <section id="actual-view" class="view-section" style="display: none;">
+        <div class="controls-bar">
+          <div class="rules-hint">
+            <span>CLASSIFICA REALE EFFETTIVA FINALE</span>
+          </div>
+          <div class="btn-group">
+            <button class="btn" onclick="randomizeActual()">SIMULAZIONE</button>
+            <button class="btn btn-accent" onclick="switchTab('results-view');">VAI AI RISULTATI</button>
+          </div>
+        </div>
+
+        <div id="actual-list" class="standings-container">
+          <!-- Generato dinamicamente in app.js -->
+        </div>
+      </section>
+
+      <!-- SCHEDA 4: RISULTATI E PUNTEGGI -->
+      <section id="results-view" class="view-section" style="display: none;">
+        <div class="score-dashboard">
+          <div class="score-main">
+            <div style="color: var(--tv-cyan); text-transform: uppercase;">RISULTATI E PUNTEGGI FINALI</div>
+            <div class="score-number" id="total-score">0 <span>PTS</span></div>
+            <div class="score-rank-title" id="rank-title">Caricamento...</div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card exact">
+              <div class="stat-val" id="count-exact">0</div>
+              <div class="stat-lbl">ESATTE (+3)</div>
+            </div>
+            <div class="stat-card close">
+              <div class="stat-val" id="count-close">0</div>
+              <div class="stat-lbl">SCARTO 1 (+1)</div>
+            </div>
+            <div class="stat-card wrong">
+              <div class="stat-val" id="count-wrong">0</div>
+              <div class="stat-lbl">ERRATE (0)</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3 style="color: var(--tv-yellow); margin: 0;">CLASSIFICA GENERALE LEGA & BADGES TROFEI</h3>
+          <button class="btn btn-accent" onclick="copyWhatsAppLeaderboardText()">📋 COPIA CLASSIFICA PER WHATSAPP</button>
+        </div>
+
+        <div class="results-table-wrapper" style="margin-bottom: 1.5rem;">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>POS</th>
+                <th>GIOCATORE & BADGES</th>
+                <th>PUNTI TOT</th>
+                <th>STATISTICHE E BONUS</th>
+              </tr>
+            </thead>
+            <tbody id="league-leaderboard-body">
+              <!-- Generato dinamicamente in app.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="color: var(--tv-cyan); margin-bottom: 0.5rem;">DETTAGLIO SQUADRA PER SQUADRA CON FRECCE LIVE</h3>
+        <div class="results-table-wrapper">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>PREV</th>
+                <th>SQUADRA</th>
+                <th>REALE</th>
+                <th>FRECCE LIVE</th>
+                <th>PUNTI TOT</th>
+              </tr>
+            </thead>
+            <tbody id="results-table-body">
+              <!-- Generato dinamicamente in app.js -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
