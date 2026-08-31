@@ -42,7 +42,10 @@
 
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <button class="btn btn-secondary" onclick="resetEntireSystemData()" style="background: var(--tv-red);">⚠️ RESET TOTALE SISTEMA</button>
-        <button class="btn btn-primary" onclick="closeDevMasterModal()">❌ CHIUDI PANNELLO SVILUPPATORE</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" onclick="logoutForumUser()" style="background: var(--tv-red); color: #fff;">🔒 ESCI (LOGOUT SVILUPPATORE)</button>
+          <button class="btn btn-primary" onclick="closeDevMasterModal()">❌ CHIUDI PANNELLO</button>
+        </div>
       </div>
     </div>
   </div>
@@ -76,6 +79,12 @@
   <!-- SCHERMATA D'INGRESSO PRINCIPALE CON DIRECTORY LEGHE CLOUD GLOBALE -->
   <div id="screen-start" class="start-screen-overlay">
     <div class="start-card" style="max-width: 960px;">
+      
+      <!-- BANNER ACCOGLIENZA PER INVITI DA LINK WHATSAPP -->
+      <div id="invite-landing-banner" style="display: none; border: 2px solid var(--tv-cyan); background: #002b2b; color: var(--tv-cyan); padding: 0.8rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 700; font-size: 1.1rem; box-shadow: 0 0 15px var(--tv-cyan-glow);">
+        🎉 SEI STATO INVITATO ALLA LEGA! COMPLETA I DATI NEL BOX "PARTECIPA CON CODICE" IN BASSO PER ENTRARE.
+      </div>
+
       <div class="tv-top-bar" style="margin-bottom: 1rem;">
         <span class="tv-logo">⚽ SERIE A LEGA</span>
         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -196,7 +205,7 @@
             <div id="cloud-status-badge">
               <span style="background: var(--tv-green); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">🟢 CLOUD ONLINE</span>
             </div>
-            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 21:41</span>
+            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 22:06</span>
           </div>
         </div>
 
@@ -390,20 +399,19 @@
         </div>
       </section>
 
-      <!-- SCHEDA 3: CLASSIFICA REALE -->
+      <!-- SCHEDA 3: CLASSIFICA REALE (SOLA LETTURA) -->
       <section id="actual-view" class="view-section" style="display: none;">
         <div class="controls-bar">
           <div class="rules-hint">
-            <span>CLASSIFICA REALE EFFETTIVA FINALE</span>
+            <span>⚽ CLASSIFICA UFFICIALE SERIE A 2026-2027 (SOLA LETTURA)</span>
           </div>
           <div class="btn-group">
-            <button class="btn" onclick="randomizeActual()">SIMULAZIONE</button>
-            <button class="btn btn-accent" onclick="switchTab('results-view');">VAI AI RISULTATI</button>
+            <button class="btn btn-accent" onclick="switchTab('results-view');">VAI AI RISULTATI LEGA</button>
           </div>
         </div>
 
         <div id="actual-list" class="standings-container">
-          <!-- Generato dinamicamente in app.js -->
+          <!-- Generato dinamicamente in app.js (Pure Read-Only) -->
         </div>
       </section>
 

@@ -178,7 +178,28 @@ function startTvClock() {
   setInterval(updateClock, 1000);
 }
 
-// CONTROLLO AUTORIZZAZIONE VISIBILITA' LEGA PER UTENTE
+function renderFixturesWidget() {
+  const container = document.getElementById('fixtures-container');
+  if (!container) return;
+  container.innerHTML = '';
+  MATCHDAY_2_FIXTURES.forEach(f => {
+    const div = document.createElement('div');
+    div.style.background = '#0d182e';
+    div.style.padding = '0.35rem 0.6rem';
+    div.style.borderRadius = '4px';
+    div.style.fontSize = '0.95rem';
+    div.style.display = 'flex';
+    div.style.justifyContent = 'space-between';
+    div.style.borderLeft = '3px solid var(--tv-cyan)';
+
+    div.innerHTML = `
+      <span style="color: var(--tv-white); font-weight: 700;">${f.home} vs ${f.away}</span>
+      <span style="color: var(--tv-yellow); font-weight: 700;">${f.time}</span>
+    `;
+    container.appendChild(div);
+  });
+}
+
 function isUserParticipantInLeague(league, user = currentForumUser) {
   if (!league) return false;
   if (isDevMasterMode) return true;
@@ -364,10 +385,15 @@ function updateUserSessionBadge() {
   const userBadgeEl = document.getElementById('user-session-badge');
   if (!userBadgeEl) return;
 
-  if (currentForumUser) {
+  if (isDevMasterMode) {
+    userBadgeEl.innerHTML = `
+      <span style="color: var(--tv-magenta); font-weight: 700;">🛠️ MASTER ADMIN</span>
+      <button class="btn" style="padding: 0.15rem 0.6rem; font-size: 0.9rem; background: var(--tv-red); color: #fff;" onclick="logoutForumUser()">🔒 ESCI (LOGOUT)</button>
+    `;
+  } else if (currentForumUser) {
     userBadgeEl.innerHTML = `
       <span style="color: var(--tv-yellow); font-weight: 700;">👤 ${currentForumUser.name}</span>
-      <button class="btn" style="padding: 0.15rem 0.5rem; font-size: 0.9rem;" onclick="logoutForumUser()">🔒 ESCI</button>
+      <button class="btn" style="padding: 0.15rem 0.6rem; font-size: 0.9rem; background: var(--tv-red); color: #fff;" onclick="logoutForumUser()">🔒 ESCI (LOGOUT)</button>
     `;
   } else {
     userBadgeEl.innerHTML = `
@@ -393,6 +419,7 @@ function loginDirectFromStart(event) {
 
   if (checkDevMasterAuth(userOrEmail, password)) {
     isDevMasterMode = true;
+    updateUserSessionBadge();
     showToast('🔑 BENVENUTO SVILUPPATORE MASTER (ADMIN)!');
     openDevMasterPanel();
     return;
@@ -532,6 +559,8 @@ function resetEntireSystemData() {
     leagues = [];
     forumUsersStore = [];
     activeLeagueId = null;
+    currentForumUser = null;
+    isDevMasterMode = false;
     showToast('SISTEMA RESETTATO.');
     location.reload();
   }
@@ -569,6 +598,8 @@ function logoutForumUser() {
   currentForumUser = null;
   isDevMasterMode = false;
   saveForumUsers();
+  if (devMasterModal) devMasterModal.style.display = 'none';
+  if (podiumModal) podiumModal.style.display = 'none';
   showToast('DISCONNESSO CON SUCCESSO.');
   showStartScreen();
 }
@@ -600,6 +631,8 @@ function switchTab(targetId) {
     updateLeagueResults();
   } else if (targetId === 'trend-view') {
     renderTrendView();
+  } else if (targetId === 'actual-view') {
+    renderActualList();
   }
 
   syncActiveLeagueWithCloud();
@@ -899,6 +932,7 @@ function showStartScreen() {
   screenStart.style.display = 'flex';
   screenApp.style.display = 'none';
   renderPublicCloudLeaguesDropdown();
+  updateUserSessionBadge();
 }
 
 function showAppScreen() {
@@ -910,6 +944,7 @@ function showAppScreen() {
   renderActualList();
   updateLeagueResults();
   renderTrendView();
+  updateUserSessionBadge();
   switchTab('predict-view');
 }
 
@@ -1087,6 +1122,11 @@ async function joinLeagueByInvite(event) {
 
 function showJoinModal(league) {
   showStartScreen();
+  const inviteBanner = document.getElementById('invite-landing-banner');
+  if (inviteBanner) {
+    inviteBanner.style.display = 'block';
+    inviteBanner.innerHTML = `🎉 SEI STATO INVITATO ALLA LEGA "${league.name.toUpperCase()}"! COMPLETA I DATI NEL BOX "PARTECIPA CON CODICE" IN BASSO PER ENTRARE.`;
+  }
   document.getElementById('join-invite-code').value = league.inviteCode || league.id;
   document.getElementById('join-player-name').focus();
   showToast(`INSERISCI I TUOI DATI PER ENTRARE NELLA LEGA "${league.name}"`);
@@ -1178,6 +1218,17 @@ function renderLeaguePanel() {
       roleBadgeDisplay.innerHTML = `<span style="background: var(--tv-yellow); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">👑 VISTA ADMIN</span>`;
     } else {
       roleBadgeDisplay.innerHTML = `<span style="background: var(--tv-cyan); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">👤 VISTA GIOCATORE</span>`;
+    }
+  }
+
+  const leagueTabBtn = document.querySelector('.tab-btn[data-target="league-view"]');
+  if (leagueTabBtn) {
+    if (isAdmin) {
+      leagueTabBtn.style.borderColor = 'var(--tv-yellow)';
+      leagueTabBtn.innerHTML = '👥 LEGA & INVITI <span style="background: var(--tv-yellow); color: #000; font-size: 0.75rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 900; margin-left: 0.3rem;">ADMIN</span>';
+    } else {
+      leagueTabBtn.style.borderColor = '';
+      leagueTabBtn.innerHTML = '👥 LEGA & INVITI';
     }
   }
 
@@ -1435,14 +1486,34 @@ function renderPredictList() {
   setupDragAndDrop(predictContainer, 'predict');
 }
 
+// VISUALIZZAZIONE CLASSIFICA REALE IN PURA SOLA LETTURA (NO INTERATTIVITA')
 function renderActualList() {
+  if (!actualContainer) return;
   actualContainer.innerHTML = '';
+
   actualStandings.forEach((team, index) => {
     const rank = index + 1;
-    const card = createTeamCard(team, rank, 'actual');
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    card.style.cursor = 'default';
+    card.setAttribute('data-zone', getZoneType(rank));
+
+    const fallbackSrc = createFallbackBadge(team);
+
+    card.innerHTML = `
+      <div class="rank-badge" style="width: 32px; height: 32px; font-size: 1.1rem; line-height: 32px;">${rank}</div>
+      <img class="team-logo" src="${team.logo}" alt="${team.name}" onerror="this.src='${fallbackSrc}'; this.onerror=null;">
+      <div class="team-info">
+        <span class="team-name" style="font-size: 1.1rem;">${team.name.toUpperCase()}</span>
+        <span class="team-zone-label">${getZoneLabel(rank)}</span>
+      </div>
+      <div style="font-size: 0.9rem; color: var(--tv-yellow); font-weight: 700; text-align: right; padding-right: 0.5rem;">
+        CLASSIFICA UFFICIALE
+      </div>
+    `;
+
     actualContainer.appendChild(card);
   });
-  setupDragAndDrop(actualContainer, 'actual');
 }
 
 function getZoneType(rank) {
@@ -1464,6 +1535,8 @@ function getZoneLabel(rank) {
 }
 
 function handleTeamTapSwap(teamId, type) {
+  if (type === 'actual') return; // Sola lettura
+
   audio.playBlip(600, 0.05);
   triggerHapticFeedback();
 
@@ -1472,7 +1545,6 @@ function handleTeamTapSwap(teamId, type) {
     selectedSwapType = null;
     showToast('SELEZIONE ANNULLATA');
     renderPredictList();
-    renderActualList();
     return;
   }
 
@@ -1481,47 +1553,30 @@ function handleTeamTapSwap(teamId, type) {
     selectedSwapType = type;
     showToast('SQUADRA SELEZIONATA. TOCCA UN\'ALTRA SQUADRA PER SCAMBIARE!');
     renderPredictList();
-    renderActualList();
   } else {
     const team1Id = selectedSwapTeamId;
     const team2Id = teamId;
     selectedSwapTeamId = null;
     selectedSwapType = null;
 
-    if (type === 'predict') {
-      const activeP = getActiveParticipant();
-      if (activeP.isLocked) {
-        showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
-        return;
-      }
-      const list = activeP.prediction;
-      const idx1 = list.indexOf(team1Id);
-      const idx2 = list.indexOf(team2Id);
+    const activeP = getActiveParticipant();
+    if (activeP.isLocked) {
+      showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
+      return;
+    }
+    const list = activeP.prediction;
+    const idx1 = list.indexOf(team1Id);
+    const idx2 = list.indexOf(team2Id);
 
-      if (idx1 >= 0 && idx2 >= 0) {
-        const temp = list[idx1];
-        list[idx1] = list[idx2];
-        list[idx2] = temp;
-        saveMultiLeagues();
-        renderPredictList();
-        renderTrendView();
-        audio.playBlip(800, 0.1);
-        showToast('SCAMBIO POSIZIONE EFFETTUATO!');
-      }
-    } else {
-      const idx1 = actualStandings.findIndex(t => t.id === team1Id);
-      const idx2 = actualStandings.findIndex(t => t.id === team2Id);
-
-      if (idx1 >= 0 && idx2 >= 0) {
-        const temp = actualStandings[idx1];
-        actualStandings[idx1] = actualStandings[idx2];
-        actualStandings[idx2] = temp;
-        saveActual();
-        renderActualList();
-        renderTrendView();
-        audio.playBlip(800, 0.1);
-        showToast('SCAMBIO REALE EFFETTUATO!');
-      }
+    if (idx1 >= 0 && idx2 >= 0) {
+      const temp = list[idx1];
+      list[idx1] = list[idx2];
+      list[idx2] = temp;
+      saveMultiLeagues();
+      renderPredictList();
+      renderTrendView();
+      audio.playBlip(800, 0.1);
+      showToast('SCAMBIO POSIZIONE EFFETTUATO!');
     }
   }
 }
@@ -1573,41 +1628,79 @@ function createTeamCard(team, rank, type) {
 }
 
 function moveTeam(type, index, delta) {
+  if (type === 'actual') return; // Sola lettura
+
   audio.playBlip(550, 0.04);
   triggerHapticFeedback();
 
-  if (type === 'predict') {
-    const activeP = getActiveParticipant();
-    if (activeP.isLocked) {
-      showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
-      return;
-    }
-    const list = activeP.prediction;
-    const newIndex = index + delta;
-    if (newIndex < 0 || newIndex >= list.length) return;
-
-    const temp = list[index];
-    list[index] = list[newIndex];
-    list[newIndex] = temp;
-
-    saveMultiLeagues();
-    renderPredictList();
-    renderTrendView();
-  } else {
-    const newIndex = index + delta;
-    if (newIndex < 0 || newIndex >= actualStandings.length) return;
-
-    const temp = actualStandings[index];
-    actualStandings[index] = actualStandings[newIndex];
-    actualStandings[newIndex] = temp;
-
-    saveActual();
-    renderActualList();
-    renderTrendView();
+  const activeP = getActiveParticipant();
+  if (activeP.isLocked) {
+    showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
+    return;
   }
+  const list = activeP.prediction;
+  const newIndex = index + delta;
+  if (newIndex < 0 || newIndex >= list.length) return;
+
+  const temp = list[index];
+  list[index] = list[newIndex];
+  list[newIndex] = temp;
+
+  saveMultiLeagues();
+  renderPredictList();
+  renderTrendView();
+}
+
+function setupTouchDragAndDrop(container, type) {
+  if (type === 'actual') return;
+
+  let activeCard = null;
+
+  container.querySelectorAll('.team-card').forEach(card => {
+    const handle = card.querySelector('.drag-handle') || card;
+
+    handle.addEventListener('touchstart', (e) => {
+      const activeP = getActiveParticipant();
+      if (activeP && activeP.isLocked) {
+        showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
+        return;
+      }
+
+      activeCard = card;
+      card.classList.add('dragging');
+      triggerHapticFeedback();
+      audio.playBlip(400, 0.05);
+    }, { passive: true });
+
+    card.addEventListener('touchmove', (e) => {
+      if (!activeCard) return;
+      const touch = e.touches[0];
+      const afterElement = getDragAfterElement(container, touch.clientY);
+
+      if (afterElement == null) {
+        container.appendChild(activeCard);
+      } else {
+        container.insertBefore(activeCard, afterElement);
+      }
+    }, { passive: true });
+
+    const finishTouch = () => {
+      if (!activeCard) return;
+      activeCard.classList.remove('dragging');
+      activeCard = null;
+      updateOrderFromDOM(container, type);
+      audio.playBlip(600, 0.05);
+      triggerHapticFeedback();
+    };
+
+    card.addEventListener('touchend', finishTouch);
+    card.addEventListener('touchcancel', finishTouch);
+  });
 }
 
 function setupDragAndDrop(container, type) {
+  if (type === 'actual') return; // Sola lettura
+
   let draggedCard = null;
   const cards = container.querySelectorAll('.team-card');
 
@@ -1615,13 +1708,11 @@ function setupDragAndDrop(container, type) {
     card.addEventListener('dragstart', (e) => {
       triggerHapticFeedback();
       audio.playBlip(400, 0.05);
-      if (type === 'predict') {
-        const activeP = getActiveParticipant();
-        if (activeP.isLocked) {
-          e.preventDefault();
-          showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
-          return;
-        }
+      const activeP = getActiveParticipant();
+      if (activeP.isLocked) {
+        e.preventDefault();
+        showToast('🔒 PRONOSTICO SIGILLATO INVIOLABILE.');
+        return;
       }
       draggedCard = card;
       card.classList.add('dragging');
@@ -1647,6 +1738,9 @@ function setupDragAndDrop(container, type) {
       }
     });
   });
+
+  // Setup Touch Drag & Drop per iOS Safari & Touch Devices
+  setupTouchDragAndDrop(container, type);
 }
 
 function getDragAfterElement(container, y) {
@@ -1663,21 +1757,15 @@ function getDragAfterElement(container, y) {
 }
 
 function updateOrderFromDOM(container, type) {
-  const newOrderIds = [...container.querySelectorAll('.team-card')].map(card => card.getAttribute('data-id'));
+  if (type === 'actual') return;
 
-  if (type === 'predict') {
-    const activeP = getActiveParticipant();
-    if (activeP.isLocked) return;
-    activeP.prediction = newOrderIds;
-    saveMultiLeagues();
-    renderPredictList();
-    renderTrendView();
-  } else {
-    actualStandings = newOrderIds.map(id => SERIE_A_TEAMS.find(t => t.id === id));
-    saveActual();
-    renderActualList();
-    renderTrendView();
-  }
+  const newOrderIds = [...container.querySelectorAll('.team-card')].map(card => card.getAttribute('data-id'));
+  const activeP = getActiveParticipant();
+  if (activeP.isLocked) return;
+  activeP.prediction = newOrderIds;
+  saveMultiLeagues();
+  renderPredictList();
+  renderTrendView();
 }
 
 function resetPrediction() {
@@ -1704,14 +1792,6 @@ function randomizePrediction() {
   renderPredictList();
   renderTrendView();
   showToast('PRONOSTICO CASUALE GENERATO!');
-}
-
-function randomizeActual() {
-  actualStandings = [...actualStandings].sort(() => Math.random() - 0.5);
-  saveActual();
-  renderActualList();
-  renderTrendView();
-  showToast('SIMULAZIONE REALE AGGIORNATA!');
 }
 
 function updateLeagueResults() {
