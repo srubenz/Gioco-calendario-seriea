@@ -32,6 +32,7 @@ const MATCHDAY_2_FIXTURES = [
 ];
 
 const CLOUD_SYNC_ENDPOINT = 'https://api.npoint.io/';
+const MASTER_REGISTRY_BIN_ID = '35f3b73eb23bb19a16f2';
 
 // SINTETIZZATORE AUDIO RETRO 8-BIT CON WEB AUDIO API
 class RetroAudioEngine {
@@ -91,6 +92,7 @@ const audio = new RetroAudioEngine();
 let forumUsersStore = [];
 let currentForumUser = null;
 let isDevMasterMode = false;
+let globalCloudRegistry = [];
 
 let selectedSwapTeamId = null;
 let selectedSwapType = null;
@@ -144,6 +146,7 @@ const forumModal = document.getElementById('forum-modal');
 const devMasterModal = document.getElementById('dev-master-modal');
 const adminOnlyControls = document.getElementById('admin-only-controls');
 const roleBadgeDisplay = document.getElementById('role-badge-display');
+const publicCloudLeaguesSelect = document.getElementById('public-cloud-leagues-select');
 
 document.addEventListener('DOMContentLoaded', () => {
   initForumUsersData();
@@ -151,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
   renderFixturesWidget();
   startTvClock();
+  fetchGlobalCloudLeagues();
   checkUrlInvite();
   startCloudBackgroundSync();
   updateUserSessionBadge();
@@ -173,6 +177,118 @@ function startTvClock() {
   };
   updateClock();
   setInterval(updateClock, 1000);
+}
+
+// FETCH DELLA DIRECTORY CLOUD GLOBALE DELLE LEGHE
+async function fetchGlobalCloudLeagues() {
+  try {
+    const res = await fetch(CLOUD_SYNC_ENDPOINT + MASTER_REGISTRY_BIN_ID);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.leagues)) {
+        globalCloudRegistry = data.leagues;
+        renderPublicCloudLeaguesDropdown();
+      }
+    }
+  } catch (e) {
+    renderPublicCloudLeaguesDropdown();
+  }
+}
+
+async function syncGlobalCloudRegistry() {
+  try {
+    const payload = {
+      leagues: globalCloudRegistry,
+      updatedAt: Date.now()
+    };
+    await fetch(CLOUD_SYNC_ENDPOINT + MASTER_REGISTRY_BIN_ID, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {}
+}
+
+function renderPublicCloudLeaguesDropdown() {
+  if (!publicCloudLeaguesSelect) return;
+  publicCloudLeaguesSelect.innerHTML = '';
+
+  const allAvailable = [...leagues];
+  globalCloudRegistry.forEach(gr => {
+    if (!allAvailable.find(l => l.id === gr.id || l.inviteCode === gr.inviteCode)) {
+      allAvailable.push(gr);
+    }
+  });
+
+  if (allAvailable.length === 0) {
+    publicCloudLeaguesSelect.innerHTML = `<option value="">NESSUNA LEGA ANCORA REGISTRATA. CREA LA PRIMA LEGA!</option>`;
+    return;
+  }
+
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = '-- SELEZIONA UNA LEGA DAL CLOUD (' + allAvailable.length + ' DISPONIBILI) --';
+  publicCloudLeaguesSelect.appendChild(defaultOpt);
+
+  allAvailable.forEach(l => {
+    const opt = document.createElement('option');
+    opt.value = l.inviteCode || l.id;
+    opt.textContent = `🏆 ${l.name} [CODICE: ${l.inviteCode || l.id}] (Admin: ${l.admin ? l.admin.name : 'Ruben'})`;
+    publicCloudLeaguesSelect.appendChild(opt);
+  });
+}
+
+async function selectPublicCloudLeague() {
+  const selectedCode = publicCloudLeaguesSelect.value;
+  if (!selectedCode) {
+    alert('SELEZIONA PRIMA UNA LEGA DALLA LISTA!');
+    return;
+  }
+
+  document.getElementById('join-invite-code').value = selectedCode;
+  
+  let targetLeague = leagues.find(l => l.inviteCode === selectedCode || l.id === selectedCode || l.cloudBinId === selectedCode);
+  if (!targetLeague) {
+    const cloudItem = globalCloudRegistry.find(r => r.inviteCode === selectedCode || r.id === selectedCode);
+    if (cloudItem && cloudItem.cloudBinId) {
+      showToast('DOWNLOAD LEGA DAL CLOUD...');
+      await fetchLeagueDataFromCloudBin(cloudItem.cloudBinId);
+      targetLeague = leagues.find(l => l.cloudBinId === cloudItem.cloudBinId || l.inviteCode === selectedCode);
+    }
+  }
+
+  if (targetLeague) {
+    activeLeagueId = targetLeague.id;
+    saveMultiLeagues();
+    showToast(`SELEZIONATA LEGA "${targetLeague.name}"! INSERISCI I TUOI DATI PER ACCEDERE.`);
+    document.getElementById('join-player-name').focus();
+  } else {
+    showToast(`CODICE LEGA ${selectedCode} IMPOSTATO! INSERISCI I TUOI DATI.`);
+  }
+}
+
+async function fetchLeagueDataFromCloudBin(cloudBinId) {
+  try {
+    const res = await fetch(CLOUD_SYNC_ENDPOINT + cloudBinId);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.league) {
+        const fetchedLeague = data.league;
+        fetchedLeague.cloudBinId = cloudBinId;
+
+        const existingIdx = leagues.findIndex(l => l.id === fetchedLeague.id || l.inviteCode === fetchedLeague.inviteCode);
+        if (existingIdx >= 0) {
+          leagues[existingIdx] = fetchedLeague;
+        } else {
+          leagues.push(fetchedLeague);
+        }
+        activeLeagueId = fetchedLeague.id;
+        saveMultiLeagues();
+        return true;
+      }
+    }
+  } catch (e) {}
+  return false;
 }
 
 function isCurrentAdmin() {
@@ -350,7 +466,6 @@ function loginWithForumAccount(event) {
   showToast(`BENVENUTO ${user.name}! SESSIONE RECUPERATA CON SUCCESSO.`);
 }
 
-// APERTURA E RENDERING PANNELLO MASTER SVILUPPATORE (ADMIN / brando)
 function openDevMasterPanel() {
   if (devMasterModal) {
     renderDevMasterData();
@@ -429,11 +544,14 @@ function renderDevMasterData() {
 function deleteLeagueById(leagueId) {
   if (confirm(`SEI SICURO DI VOLER ELIMINARE LA LEGA ${leagueId}?`)) {
     leagues = leagues.filter(l => l.id !== leagueId);
+    globalCloudRegistry = globalCloudRegistry.filter(r => r.id !== leagueId);
+    syncGlobalCloudRegistry();
     if (activeLeagueId === leagueId) {
       activeLeagueId = leagues.length > 0 ? leagues[0].id : null;
     }
     saveMultiLeagues();
     renderDevMasterData();
+    renderPublicCloudLeaguesDropdown();
     showToast('LEGA ELIMINATA DAL MASTER.');
   }
 }
@@ -468,12 +586,15 @@ function deleteCurrentLeague() {
 
   if (confirm(`⚠️ SEI SICURO DI VOLER ELIMINARE DEFINITIVAMENTE LA LEGA "${curLeague.name}"?`)) {
     leagues = leagues.filter(l => l.id !== curLeague.id);
+    globalCloudRegistry = globalCloudRegistry.filter(r => r.id !== curLeague.id);
+    syncGlobalCloudRegistry();
     if (leagues.length > 0) {
       activeLeagueId = leagues[0].id;
     } else {
       activeLeagueId = null;
     }
     saveMultiLeagues();
+    renderPublicCloudLeaguesDropdown();
     if (activeLeagueId) {
       showAppScreen();
       showToast('LEGA ELIMINATA.');
@@ -721,7 +842,8 @@ function startCloudBackgroundSync() {
     if (activeLeagueId) {
       syncActiveLeagueWithCloud(true);
     }
-  }, 10000);
+    fetchGlobalCloudLeagues();
+  }, 8000);
 }
 
 function updateCloudBadgeStatus(statusText, isConnected) {
@@ -767,6 +889,18 @@ async function syncActiveLeagueToCloud() {
           updateCloudBadgeStatus('BIN CREATO', true);
         }
       }
+    }
+
+    // REGISTRAZIONE NELLA MASTER DIRECTORY GLOBALE
+    if (!globalCloudRegistry.find(r => r.id === curLeague.id)) {
+      globalCloudRegistry.push({
+        id: curLeague.id,
+        name: curLeague.name,
+        inviteCode: curLeague.inviteCode || curLeague.id,
+        cloudBinId: curLeague.cloudBinId,
+        admin: curLeague.admin
+      });
+      syncGlobalCloudRegistry();
     }
   } catch (e) {
     updateCloudBadgeStatus('OFFLINE', false);
@@ -839,6 +973,18 @@ function checkUrlInvite() {
       showJoinModal(targetLeague);
       return;
     }
+    
+    // FETCH DAL CLOUD SE NON IN LOCALE
+    const cloudItem = globalCloudRegistry.find(r => r.inviteCode === inviteCode || r.id === inviteCode);
+    if (cloudItem && cloudItem.cloudBinId) {
+      fetchLeagueDataFromCloudBin(cloudItem.cloudBinId).then(success => {
+        if (success) {
+          const loaded = leagues.find(l => l.cloudBinId === cloudItem.cloudBinId);
+          if (loaded) showJoinModal(loaded);
+        }
+      });
+      return;
+    }
   }
 
   if (leagues.length > 0 && activeLeagueId) {
@@ -851,6 +997,7 @@ function checkUrlInvite() {
 function showStartScreen() {
   screenStart.style.display = 'flex';
   screenApp.style.display = 'none';
+  renderPublicCloudLeaguesDropdown();
 }
 
 function showAppScreen() {
@@ -941,11 +1088,12 @@ function createLeagueByAdmin(event) {
   activeLeagueId = newLeagueId;
   saveMultiLeagues();
 
+  renderPublicCloudLeaguesDropdown();
   showAppScreen();
   showToast(`LEGA "${leagueName}" CREATA DA ${adminName}!`);
 }
 
-function joinLeagueByInvite(event) {
+async function joinLeagueByInvite(event) {
   if (event) event.preventDefault();
   audio.playLock();
 
@@ -969,6 +1117,15 @@ function joinLeagueByInvite(event) {
 
   let targetLeague = leagues.find(l => l.inviteCode === inviteCode || l.id === inviteCode || l.cloudBinId === inviteCode);
   
+  // CERCA E SCARICA DAL CLOUD GLOBALE SE NON IN LOCALE
+  if (!targetLeague) {
+    const cloudItem = globalCloudRegistry.find(r => r.inviteCode === inviteCode || r.id === inviteCode);
+    if (cloudItem && cloudItem.cloudBinId) {
+      await fetchLeagueDataFromCloudBin(cloudItem.cloudBinId);
+      targetLeague = leagues.find(l => l.cloudBinId === cloudItem.cloudBinId || l.inviteCode === inviteCode);
+    }
+  }
+
   if (!targetLeague) {
     const newLeagueId = 'league_' + Date.now();
     targetLeague = {
@@ -1005,7 +1162,7 @@ function joinLeagueByInvite(event) {
 
   saveMultiLeagues();
   showAppScreen();
-  showToast(`BENVENUTO ${playerName}! ACCOUNT SALVATO.`);
+  showToast(`BENVENUTO ${playerName}! SEI ENTRATO NELLA LEGA!`);
 }
 
 function showJoinModal(league) {
@@ -1263,7 +1420,6 @@ function closePodiumModal() {
   if (podiumModal) podiumModal.style.display = 'none';
 }
 
-// SIGILLO INVIOLABILE DEI PRONOSTICI (NON PUO' ESSERE SBLOCCATO)
 function toggleLockActiveParticipant() {
   const activeP = getActiveParticipant();
   if (!activeP) return;

@@ -136,9 +136,9 @@
     </div>
   </div>
 
-  <!-- SCHERMATA D'INGRESSO PRINCIPALE CON 3 BOX: CREA, PARTECIPA E LOGIN DIRETTO -->
+  <!-- SCHERMATA D'INGRESSO PRINCIPALE CON DIRECTORY LEGHE CLOUD GLOBALE -->
   <div id="screen-start" class="start-screen-overlay">
-    <div class="start-card" style="max-width: 920px;">
+    <div class="start-card" style="max-width: 960px;">
       <div class="tv-top-bar" style="margin-bottom: 1rem;">
         <span class="tv-logo">⚽ SERIE A LEGA</span>
         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -147,13 +147,33 @@
         </div>
       </div>
       <h1 class="start-title">INIZIO PRONOSTICO LEGA</h1>
-      <p class="start-desc">Scegli la tua opzione: crea una nuova Lega, partecipa ad una Lega con codice o accedi al tuo account già esistente.</p>
+      <p class="start-desc">Scegli una Lega esistente dal Cloud, partecipa con un codice oppure crea una nuova Lega.</p>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 1.5rem;">
+      <!-- BOX IN EVIDENZA: SELEZIONA UNA LEGA ESISTENTE DAL CLOUD -->
+      <div style="border: 2px solid var(--tv-yellow); padding: 1rem 1.2rem; background: #1a1700; border-radius: 12px; margin-top: 1rem; text-align: left; box-shadow: 0 0 20px rgba(255, 255, 0, 0.25);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+          <h3 style="color: var(--tv-yellow); margin: 0; font-size: 1.3rem;">🏆 LEGHE ESISTENTI NEL CLOUD (ACCESSO RAPIDO)</h3>
+          <span style="background: var(--tv-green); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px; font-size: 0.9rem;">🌐 CLOUD LIVE</span>
+        </div>
+        <p style="color: var(--tv-cyan); font-size: 1rem; margin-bottom: 0.8rem;">
+          Seleziona una lega già creata per entrare direttamente e sincronizzare i tuoi pronostici senza creare leghe doppie!
+        </p>
+
+        <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center;">
+          <select id="public-cloud-leagues-select" style="flex: 1; min-width: 260px; padding: 0.5rem; background: var(--tv-black); color: var(--tv-yellow); border: 2px solid var(--tv-yellow); font-family: var(--font-televideo); font-size: 1.1rem; font-weight: 700; border-radius: 6px;">
+            <option value="">Caricamento leghe dal Cloud in corso...</option>
+          </select>
+          <button class="btn btn-accent" onclick="selectPublicCloudLeague()" style="padding: 0.55rem 1.2rem; font-size: 1.1rem;">
+            ▶ ENTRA NELLA LEGA SELEZIONATA
+          </button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 1.2rem;">
 
         <!-- BOX 1: CREA LEGA (ADMIN) -->
         <div style="border: 2px solid var(--tv-yellow); padding: 1.2rem; background: #000033; border-radius: 12px; box-shadow: 0 0 15px rgba(255, 255, 0, 0.2);">
-          <h3 style="color: var(--tv-yellow); margin-bottom: 0.8rem;">👑 CREA LEGA (ADMIN)</h3>
+          <h3 style="color: var(--tv-yellow); margin-bottom: 0.8rem;">👑 CREA NUOVA LEGA (ADMIN)</h3>
           <form onsubmit="createLeagueByAdmin(event)" class="start-form">
             <div class="form-group">
               <label for="admin-name">NOME ADMIN *</label>
@@ -240,7 +260,7 @@
             <div id="cloud-status-badge">
               <span style="background: var(--tv-green); color: #000; padding: 0.15rem 0.5rem; font-weight: 700; border-radius: 4px;">🟢 CLOUD ONLINE</span>
             </div>
-            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 12:17</span>
+            <span class="tv-clock" id="tv-live-clock">LUN 31 AGO 21:30</span>
           </div>
         </div>
 
