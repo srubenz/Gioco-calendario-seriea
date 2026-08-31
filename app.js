@@ -142,7 +142,6 @@ const leagueSwitcher = document.getElementById('league-switcher');
 const cloudStatusBadge = document.getElementById('cloud-status-badge');
 const podiumModal = document.getElementById('podium-modal');
 const podiumWrapper = document.getElementById('podium-steps-wrapper');
-const forumModal = document.getElementById('forum-modal');
 const devMasterModal = document.getElementById('dev-master-modal');
 const adminOnlyControls = document.getElementById('admin-only-controls');
 const roleBadgeDisplay = document.getElementById('role-badge-display');
@@ -179,7 +178,6 @@ function startTvClock() {
   setInterval(updateClock, 1000);
 }
 
-// FETCH DELLA DIRECTORY CLOUD GLOBALE DELLE LEGHE
 async function fetchGlobalCloudLeagues() {
   try {
     const res = await fetch(CLOUD_SYNC_ENDPOINT + MASTER_REGISTRY_BIN_ID);
@@ -348,7 +346,7 @@ function updateUserSessionBadge() {
     `;
   } else {
     userBadgeEl.innerHTML = `
-      <button class="btn btn-primary" style="padding: 0.15rem 0.5rem; font-size: 0.9rem;" onclick="openForumModal()">🔑 ACCEDI / FORUM</button>
+      <span style="color: var(--tv-cyan); font-weight: 700;">👤 NON LOGGATO</span>
     `;
   }
 }
@@ -412,58 +410,6 @@ function loginDirectFromStart(event) {
 
   showAppScreen();
   showToast(`BENVENUTO ${user.name}! LOGIN EFFETTUATO CON SUCCESSO.`);
-}
-
-function loginWithForumAccount(event) {
-  if (event) event.preventDefault();
-
-  const email = document.getElementById('forum-modal-email').value.trim();
-  const password = document.getElementById('forum-modal-password').value.trim();
-
-  if (checkDevMasterAuth(email, password)) {
-    closeForumModal();
-    isDevMasterMode = true;
-    showToast('🔑 BENVENUTO SVILUPPATORE MASTER (ADMIN)!');
-    openDevMasterPanel();
-    return;
-  }
-
-  const user = forumUsersStore.find(u => u.email === email.toLowerCase());
-  if (!user) {
-    alert('EMAIL NON TROVATA NELL\'ARCHIVIO FORUM! REGISTRATI PRIMA.');
-    return;
-  }
-  if (user.password !== password) {
-    alert('PASSWORD ERRATA!');
-    return;
-  }
-
-  currentForumUser = user;
-  saveForumUsers();
-  closeForumModal();
-
-  const curLeague = getActiveLeague();
-  if (curLeague) {
-    const existingP = curLeague.participants.find(p => p.name.toUpperCase() === user.name.toUpperCase());
-    if (existingP) {
-      curLeague.activeParticipantId = existingP.id;
-    } else {
-      const newPlayerId = 'p_' + Date.now();
-      curLeague.participants.push({
-        id: newPlayerId,
-        name: user.name,
-        prediction: SERIE_A_TEAMS.map(t => t.id),
-        isLocked: false,
-        score: 0,
-        stats: { exact: 0, close: 0, wrong: 0, scudettoBonus: 0, relegationBonus: 0 }
-      });
-      curLeague.activeParticipantId = newPlayerId;
-    }
-    saveMultiLeagues();
-  }
-
-  showAppScreen();
-  showToast(`BENVENUTO ${user.name}! SESSIONE RECUPERATA CON SUCCESSO.`);
 }
 
 function openDevMasterPanel() {
@@ -531,7 +477,7 @@ function renderDevMasterData() {
         div.innerHTML = `
           <div>
             <strong style="color: var(--tv-yellow);">👤 ${u.name}</strong> • EMAIL: <span style="color: var(--tv-white);">${u.email}</span>
-            <div style="font-size: 0.85rem; color: var(--tv-magenta);">PASSWORD: ${u.password}</div>
+            <div style="font-size: 0.85rem; color: var(--tv-magenta); font-weight: 700;">PASSWORD: ${u.password}</div>
           </div>
           <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.85rem; background: var(--tv-red);" onclick="deleteUserByEmail('${u.email}')">ELIMINA UTENTE</button>
         `;
@@ -605,73 +551,12 @@ function deleteCurrentLeague() {
   }
 }
 
-function recoverForumPassword(event) {
-  if (event) event.preventDefault();
-
-  const email = document.getElementById('forum-recover-email').value.trim().toLowerCase();
-  if (!email) {
-    alert('INSERISCI LA TUA EMAIL!');
-    return;
-  }
-
-  const user = forumUsersStore.find(u => u.email === email);
-  if (user) {
-    document.getElementById('forum-modal-email').value = user.email;
-    document.getElementById('forum-modal-password').value = user.password;
-    document.getElementById('start-login-email').value = user.email;
-    document.getElementById('start-login-password').value = user.password;
-    showToast(`RECUPERO EFFETTUATO! ACCOUNT: ${user.name} (PASS: ${user.password})`);
-  } else {
-    alert('NESSUN ACCOUNT TROVATO CON QUESTA EMAIL.');
-  }
-}
-
 function logoutForumUser() {
   currentForumUser = null;
   isDevMasterMode = false;
   saveForumUsers();
   showToast('DISCONNESSO CON SUCCESSO.');
   showStartScreen();
-}
-
-function openForumModal() {
-  if (forumModal) {
-    renderForumUserList();
-    forumModal.style.display = 'flex';
-  }
-}
-
-function closeForumModal() {
-  if (forumModal) forumModal.style.display = 'none';
-}
-
-function renderForumUserList() {
-  const container = document.getElementById('forum-users-list');
-  if (!container) return;
-
-  container.innerHTML = '';
-  if (forumUsersStore.length === 0) {
-    container.innerHTML = `<div style="color: var(--tv-cyan); text-align: center; padding: 1rem;">NESSUN UTENTE ANCORA REGISTRATO NEL FORUM.</div>`;
-    return;
-  }
-
-  forumUsersStore.forEach(u => {
-    const card = document.createElement('div');
-    card.className = 'stat-card';
-    card.style.display = 'flex';
-    card.style.justifyContent = 'space-between';
-    card.style.alignItems = 'center';
-    card.style.padding = '0.6rem 1rem';
-
-    card.innerHTML = `
-      <div style="text-align: left;">
-        <strong style="color: var(--tv-yellow); font-size: 1.2rem;">👤 ${u.name}</strong>
-        <div style="font-size: 0.95rem; color: var(--tv-cyan);">${u.email}</div>
-      </div>
-      <button class="btn btn-primary" style="padding: 0.2rem 0.6rem; font-size: 0.95rem;" onclick="document.getElementById('forum-modal-email').value='${u.email}'; document.getElementById('forum-modal-password').value='${u.password}'; showToast('CREDENTIALI INSERITE! CLICCA ACCEDI');">SELEZIONA</button>
-    `;
-    container.appendChild(card);
-  });
 }
 
 function switchTab(targetId) {
@@ -891,7 +776,6 @@ async function syncActiveLeagueToCloud() {
       }
     }
 
-    // REGISTRAZIONE NELLA MASTER DIRECTORY GLOBALE
     if (!globalCloudRegistry.find(r => r.id === curLeague.id)) {
       globalCloudRegistry.push({
         id: curLeague.id,
@@ -974,7 +858,6 @@ function checkUrlInvite() {
       return;
     }
     
-    // FETCH DAL CLOUD SE NON IN LOCALE
     const cloudItem = globalCloudRegistry.find(r => r.inviteCode === inviteCode || r.id === inviteCode);
     if (cloudItem && cloudItem.cloudBinId) {
       fetchLeagueDataFromCloudBin(cloudItem.cloudBinId).then(success => {
@@ -1117,7 +1000,6 @@ async function joinLeagueByInvite(event) {
 
   let targetLeague = leagues.find(l => l.inviteCode === inviteCode || l.id === inviteCode || l.cloudBinId === inviteCode);
   
-  // CERCA E SCARICA DAL CLOUD GLOBALE SE NON IN LOCALE
   if (!targetLeague) {
     const cloudItem = globalCloudRegistry.find(r => r.inviteCode === inviteCode || r.id === inviteCode);
     if (cloudItem && cloudItem.cloudBinId) {
