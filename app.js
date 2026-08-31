@@ -633,6 +633,7 @@ function switchTab(targetId) {
     renderTrendView();
   } else if (targetId === 'actual-view') {
     renderActualList();
+    fetchLiveSerieAStandings(false);
   }
 
   syncActiveLeagueWithCloud();
@@ -1521,6 +1522,63 @@ function renderActualList() {
 
     actualContainer.appendChild(card);
   });
+}
+
+async function fetchLiveSerieAStandings(isManual = false) {
+  try {
+    if (isManual) showToast('CONNESSIONE A SERVIZIO SPORT LIVE IN CORSO...');
+
+    // Primary API: Open TheSportsDB API (CORS Enabled)
+    const seasons = ['2026-2027', '2025-2026', '2024-2025'];
+    let fetchedTable = null;
+
+    for (const season of seasons) {
+      try {
+        const res = await fetch(`https://www.thesportsdb.com/api/v1/json/3/lookuptable.php?l=4332&s=${season}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && Array.isArray(data.table) && data.table.length >= 10) {
+            fetchedTable = data.table;
+            break;
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (fetchedTable && fetchedTable.length > 0) {
+      const newActual = [];
+      fetchedTable.forEach(item => {
+        const teamName = item.strTeam.toLowerCase();
+        const matched = SERIE_A_TEAMS.find(t => {
+          const name = t.name.toLowerCase();
+          const fullName = t.fullName.toLowerCase();
+          return teamName.includes(name) || fullName.includes(teamName) || teamName.includes(t.short.toLowerCase());
+        });
+        if (matched && !newActual.includes(matched)) {
+          newActual.push(matched);
+        }
+      });
+
+      // Complete missing teams at the bottom if any
+      SERIE_A_TEAMS.forEach(t => {
+        if (!newActual.includes(t)) newActual.push(t);
+      });
+
+      if (newActual.length === SERIE_A_TEAMS.length) {
+        actualStandings = newActual;
+        saveActual();
+        renderActualList();
+        updateLeagueResults();
+        renderTrendView();
+        syncActiveLeagueToCloud();
+        showToast('🟢 CLASSIFICA REALE SERIE A AGGIORNATA LIVE!');
+        return true;
+      }
+    }
+  } catch (err) {
+    if (isManual) showToast('SERVIZIO LIVE TEMPORANEAMENTE OCCUPATO. USATI DATI UFFICIALI SALVATI.');
+  }
+  return false;
 }
 
 function getZoneType(rank) {
